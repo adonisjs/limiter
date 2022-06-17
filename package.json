@@ -1,0 +1,79 @@
+{
+  "name": "<%= PACKAGE_NAME %>",
+  "version": "0.0.0",
+  "description": "",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "pretest": "npm run lint",
+    "test": "node --loader=ts-node/esm bin/test.ts",
+    "clean": "del-cli build",
+    "compile": "npm run lint && npm run clean && tsc",
+    "build": "npm run compile",
+    "commit": "git-cz",
+    "release": "np --message=\"chore(release): %s\"",
+    "version": "npm run build",
+    "prepublishOnly": "npm run build",
+    "lint": "eslint . --ext=.ts",
+    "format": "prettier --write .",
+    "sync-labels": "github-label-sync --labels .github/labels.json <%= PACKAGE_NAME %>"
+  },
+  "keywords": [],
+  "author": "virk",
+  "license": "MIT",
+  "devDependencies": {
+    "@swc/core": "^1.2.203",
+    "commitizen": "^4.2.4",
+    "cz-conventional-changelog": "^3.3.0",
+    "del-cli": "^4.0.1",
+    "ejs": "^3.1.8",
+    "eslint": "^8.17.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-adonis": "^3.0.2",
+    "eslint-plugin-prettier": "^4.0.0",
+    "github-label-sync": "^2.2.0",
+    "husky": "^8.0.1",
+    "np": "^7.6.1",
+    "prettier": "^2.7.1",
+    "ts-node": "^10.8.1",
+    "typescript": "^4.7.3"
+  },
+  "eslintConfig": {
+    "extends": [
+      "plugin:adonis/typescriptPackage",
+      "prettier"
+    ],
+    "plugins": [
+      "prettier"
+    ],
+    "rules": {
+      "prettier/prettier": [
+        "error",
+        {
+          "endOfLine": "auto"
+        }
+      ]
+    }
+  },
+  "eslintIgnore": [
+    "build"
+  ],
+  "prettier": {
+    "trailingComma": "es5",
+    "semi": false,
+    "singleQuote": true,
+    "useTabs": false,
+    "quoteProps": "consistent",
+    "bracketSpacing": true,
+    "arrowParens": "always",
+    "printWidth": 100
+  },
+  "publishConfig": {
+    "access": "public",
+    "tag": "latest"
+  },
+  "np": {
+    "contents": ".",
+    "anyBranch": false
+  }
+}
