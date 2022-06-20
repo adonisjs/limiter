@@ -14,7 +14,7 @@ done
 
 # Setup husky
 npx husky install
-npx husky add .husky/commit-msg 'npx --no --commitlint --edit "\$\1"'
+npx --package=husky -c="husky add .husky/commit-msg npx --no --commitlint --edit \"\$1\"'"
 
 # Clean up / implode
 rm README.md
@@ -22,3 +22,4 @@ mv README_TEMPLATE.md README.md
 mv github .github
 rm customize.sh
 rm data.json
+rm use-as-template.png
