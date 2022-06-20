@@ -84,7 +84,7 @@
     "tag": "latest"
   },
   "np": {
-    "contents": "./build",
+    "contents": "./",
     "anyBranch": false
   }
 }

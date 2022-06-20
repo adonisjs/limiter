@@ -1,4 +1,4 @@
-ignore_files=".git|node_modules|_templates|customize.sh|README.md"
+ignore_files=".git|node_modules|_templates|customize.sh|README.md|.png"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
