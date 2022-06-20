@@ -16,7 +16,6 @@
     "clean": "del-cli build",
     "compile": "npm run lint && npm run clean && tsc",
     "build": "npm run compile",
-    "commit": "git-cz",
     "release": "np --message=\"chore(release): %s\"",
     "version": "npm run build",
     "prepublishOnly": "npm run build",
