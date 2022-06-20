@@ -1,3 +1,6 @@
 {
-  "PACKAGE_NAME": "@poppinss/hinge"
+  "PACKAGE_NAME": "",
+  "PACKAGE_DESCRIPTION": "",
+  "NPM_AUTHORS": "comma separated npm usernames",
+  "LICENSE": "MIT"
 }
