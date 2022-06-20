@@ -32,4 +32,5 @@ The final bit is to get rid of the placeholder variables placed inside different
 
 1. Open `data.json` file and define the value for all the pre-defined keys.
 2. Run `sh ./customize.sh`.
+3. Uninstall `ejs` by running `npm uninstall ejs`. Ejs is used for interpolating placeholders.
 3. Sit back and relax.
