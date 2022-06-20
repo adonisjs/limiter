@@ -12,6 +12,10 @@ do
   fi
 done
 
+# Setup husky
+npx husky install
+npx husky add .husky/commit-msg 'npx --no --commitlint --edit "\$1"'
+
 # Clean up / implode
 rm README.md
 mv README_TEMPLATE.md README.md

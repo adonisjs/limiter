@@ -24,6 +24,10 @@
     "format": "prettier --write .",
     "sync-labels": "github-label-sync --labels .github/labels.json <%= PACKAGE_NAME %>"
   },
+  "publishConfig": {
+    "access": "public",
+    "tag": "latest"
+  },
   "keywords": [],
   "author": "<%= NPM_AUTHORS %>",
   "license": "<%= LICENSE %>",
@@ -79,12 +83,15 @@
     "arrowParens": "always",
     "printWidth": 100
   },
-  "publishConfig": {
-    "access": "public",
-    "tag": "latest"
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ]
   },
   "np": {
-    "contents": "./",
+    "message": "chore(release): %s",
+    "tag": "latest",
+    "branch": "main",
     "anyBranch": false
   }
 }
