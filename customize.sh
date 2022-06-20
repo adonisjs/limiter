@@ -14,7 +14,7 @@ done
 
 # Setup husky
 npx husky install
-npx --package=husky -c="husky add .husky/commit-msg npx --no --commitlint --edit \"\$1\"'"
+npx --package=husky -c="husky add .husky/commit-msg 'npx --no -- commitlint --edit \"\$1\"'"
 
 # Clean up / implode
 rm README.md
