@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
-    "module": "NodeNext",
-    "lib": ["ESNext"],
+    "target": "ES2022",
+    "module": "CommonJS",
+    "lib": ["ES2022"],
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "isolatedModules": true,
@@ -20,8 +20,5 @@
     "types": ["@types/node"]
   },
   "include": ["./**/*"],
-  "exclude": ["./node_modules", "./build"],
-  "ts-node": {
-    "swc": true
-  }
+  "exclude": ["./node_modules", "./build"]
 }
