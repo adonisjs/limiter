@@ -5,7 +5,6 @@
     "lib": ["ES2022"],
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "isolatedModules": true,
     "removeComments": true,
     "declaration": true,
     "rootDir": "./",
@@ -17,7 +16,9 @@
     "strictFunctionTypes": true,
     "noImplicitThis": true,
     "skipLibCheck": true,
-    "types": ["@types/node"]
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "types": ["@types/node", "@adonisjs/core", "@adonisjs/lucid", "@adonisjs/redis"]
   },
   "include": ["./**/*"],
   "exclude": ["./node_modules", "./build"]

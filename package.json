@@ -2,13 +2,16 @@
   "name": "@adonisjs/limiter",
   "version": "0.0.0",
   "description": "Rate limiting package for AdonisJS framework",
+  "main": "./build/providers/limiter_provider.js",
   "files": [
-    "src",
-    "index.js"
+    "build/adonis-typings",
+    "build/providers",
+    "build/services",
+    "build/middleware",
+    "build/src",
+    "build/config.js",
+    "build/config.d.ts"
   ],
-  "exports": {
-    ".": "./index.js"
-  },
   "scripts": {
     "pretest": "npm run lint",
     "test": "node --require=@adonisjs/require-ts/build/register bin/test.ts",
@@ -20,7 +23,7 @@
     "prepublishOnly": "npm run build",
     "lint": "eslint . --ext=.ts",
     "format": "prettier --write .",
-    "sync-labels": "github-label-sync --labels .github/labels.json @adonisjs/limiter"
+    "sync-labels": "github-label-sync --labels .github/labels.json adonisjs/limiter"
   },
   "publishConfig": {
     "access": "public",
@@ -30,6 +33,9 @@
   "author": "adonisjs,virk",
   "license": "MIT",
   "devDependencies": {
+    "@adonisjs/core": "^5.8.5",
+    "@adonisjs/lucid": "^18.1.0",
+    "@adonisjs/redis": "^7.3.0",
     "@adonisjs/require-ts": "^2.0.12",
     "@commitlint/cli": "^17.0.2",
     "@commitlint/config-conventional": "^17.0.2",
@@ -37,15 +43,19 @@
     "@japa/run-failed-tests": "^1.0.7",
     "@japa/runner": "^2.0.9",
     "@japa/spec-reporter": "^1.1.12",
-    "@types/node": "^18.0.0",
+    "@poppinss/dev-utils": "^2.0.3",
+    "@types/node": "^18.0.6",
     "del-cli": "^4.0.1",
-    "eslint": "^8.17.0",
+    "dotenv": "^16.0.1",
+    "eslint": "^8.20.0",
     "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-adonis": "^3.0.2",
     "eslint-plugin-prettier": "^4.0.0",
     "github-label-sync": "^2.2.0",
     "husky": "^8.0.1",
+    "mysql": "^2.18.1",
     "np": "^7.6.1",
+    "pg": "^8.7.3",
     "prettier": "^2.7.1",
     "typescript": "^4.7.3"
   },
@@ -89,5 +99,9 @@
     "tag": "latest",
     "branch": "main",
     "anyBranch": false
+  },
+  "dependencies": {
+    "@poppinss/utils": "^5.0.0",
+    "rate-limiter-flexible": "^2.3.7"
   }
 }
