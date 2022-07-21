@@ -5,14 +5,25 @@ on:
 jobs:
   linux:
     runs-on: ubuntu-latest
-    container: node:10.18-jessie
     services:
       postgres:
         image: postgres
         env:
           POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
       redis:
         image: redis
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
     strategy:
       matrix:
         node-version:
@@ -29,10 +40,10 @@ jobs:
       - name: Run tests
         run: npm test
         env:
-          PG_HOST: postgres
+          PG_HOST: 0.0.0.0
           PG_PORT: 5432
           PG_USER: postgres
           PG_PASSWORD: postgres
-          REDIS_HOST: redis
+          REDIS_HOST: 0.0.0.0
           REDIS_PORT: 6379
           DB_NAME: rate_limiter
