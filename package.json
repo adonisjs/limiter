@@ -1,6 +1,6 @@
 {
   "name": "@adonisjs/limiter",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Rate limiting package for AdonisJS framework",
   "main": "./build/providers/limiter_provider.js",
   "files": [
@@ -111,7 +111,9 @@
   },
   "adonisjs": {
     "instructionsMd": "./build/instructions.md",
-    "preloads": ["./start/limiter"],
+    "preloads": [
+      "./start/limiter"
+    ],
     "templates": {
       "config": [
         {
