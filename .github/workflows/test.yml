@@ -5,6 +5,23 @@ on:
 jobs:
   linux:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+          options: >-
+            --health-cmd pg_isready
+            --health-interval 10s
+            --health-timeout 5s
+            --health-retries 5
+      redis:
+        image: redis
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     strategy:
       matrix:
         node-version:
@@ -20,8 +37,33 @@ jobs:
         run: npm install
       - name: Run tests
         run: npm test
+        env:
+          PG_HOST: postgres
+          PG_PORT: 5432
+          PG_USER: postgres
+          PG_PASSWORD: postgres
+          REDIS_HOST: redis
+          REDIS_PORT: 6379
+          DB_NAME: rate_limiter
   windows:
     runs-on: windows-latest
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+          options: >-
+            --health-cmd pg_isready
+            --health-interval 10s
+            --health-timeout 5s
+            --health-retries 5
+      redis:
+        image: redis
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     strategy:
       matrix:
         node-version:
@@ -37,3 +79,11 @@ jobs:
         run: npm install
       - name: Run tests
         run: npm test
+        env:
+          PG_HOST: postgres
+          PG_PORT: 5432
+          PG_USER: postgres
+          PG_PASSWORD: postgres
+          REDIS_HOST: redis
+          REDIS_PORT: 6379
+          DB_NAME: rate_limiter
