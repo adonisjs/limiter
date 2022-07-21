@@ -41,12 +41,30 @@ export class Limiter {
         retryAfter: response.msBeforeNext,
       }
     } catch (errorResponse) {
-      throw ThrottleException.invoke({
-        remaining: errorResponse.remainingPoints,
-        limit: this.rateLimiter.points,
-        consumed: errorResponse.consumedPoints,
-        retryAfter: errorResponse.msBeforeNext,
-      })
+      if (errorResponse.consumedPoints) {
+        throw ThrottleException.invoke({
+          remaining: errorResponse.remainingPoints,
+          limit: this.rateLimiter.points,
+          consumed: errorResponse.consumedPoints,
+          retryAfter: errorResponse.msBeforeNext,
+        })
+      } else {
+        throw errorResponse
+      }
+    }
+  }
+
+  /**
+   * Increment the requests count. This method same as "consume"
+   * but does not fail when the requests have been exhausted.
+   */
+  async increment(key: string | number): Promise<void> {
+    try {
+      await this.consume(key)
+    } catch (error) {
+      if (error instanceof ThrottleException === false) {
+        throw error
+      }
     }
   }
 
@@ -72,12 +90,26 @@ export class Limiter {
    * Find the number of remaining requests for a given key
    */
   async remaining(key: string | number): Promise<number> {
-    const response = await this.rateLimiter.get(key)
-    if (!response || Number.isNaN(response.remainingPoints)) {
+    const response = await this.get(key)
+    if (!response) {
       return this.rateLimiter.points
     }
 
-    return response.remainingPoints
+    return response.remaining
+  }
+
+  /**
+   * Find if the current key is blocked. This method essentionally
+   * checks if the consumed points are greater than the allowed
+   * limit.
+   */
+  async isBlocked(key: string | number): Promise<boolean> {
+    const response = await this.get(key)
+    if (!response) {
+      return false
+    }
+
+    return response.consumed > response.limit
   }
 
   /**
