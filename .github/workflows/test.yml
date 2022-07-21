@@ -5,6 +5,7 @@ on:
 jobs:
   linux:
     runs-on: ubuntu-latest
+    container: node:10.18-jessie
     services:
       postgres:
         image: postgres
