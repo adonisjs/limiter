@@ -138,5 +138,16 @@
     "providers": [
       "@adonisjs/limiter"
     ]
-  }
+  },
+  "directories": {
+    "test": "tests"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/thetutlage/limiter.git"
+  },
+  "bugs": {
+    "url": "https://github.com/thetutlage/limiter/issues"
+  },
+  "homepage": "https://github.com/thetutlage/limiter#readme"
 }
