@@ -7,11 +7,11 @@
  * file that was distributed with this source code.
  */
 
-import type { LimiterStores, HttpLimiters } from '../services'
+import type { LimiterStores } from '../services'
 import type { LimiterManager } from '../src/limiter_manager'
 
 declare module '@ioc:Adonis/Core/Application' {
   export interface ContainerBindings {
-    'Adonis/Addons/Limiter': LimiterManager<LimiterStores, HttpLimiters>
+    'Adonis/Addons/Limiter': LimiterManager<LimiterStores, any>
   }
 }

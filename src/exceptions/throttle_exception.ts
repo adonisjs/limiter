@@ -27,12 +27,12 @@ export class ThrottleException extends Exception {
     const error = new this(message, status, 'E_TOO_MANY_REQUESTS')
     error.limit = limiterResponse.limit
     error.remaining = limiterResponse.remaining
-    error.retryAfter = Math.ceil(limiterResponse.retryAfter / 1000)
+    error.retryAfter = limiterResponse.retryAfter
 
     error.headers = {
       'X-RateLimit-Limit': limiterResponse.limit,
       'X-RateLimit-Remaining': limiterResponse.remaining,
-      'Retry-After': error.retryAfter,
+      'Retry-After': Math.ceil(limiterResponse.retryAfter / 1000),
     }
 
     return error
@@ -54,7 +54,7 @@ export class ThrottleException extends Exception {
     this.setHeaders(ctx)
     ctx.response
       .status(this.status)
-      .json({ errors: [{ message: this.message, retryAfter: this.retryAfter }] })
+      .json({ errors: [{ message: this.message, retryAfter: Math.ceil(this.retryAfter / 1000) }] })
   }
 
   /**

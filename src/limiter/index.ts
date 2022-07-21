@@ -69,6 +69,18 @@ export class Limiter {
   }
 
   /**
+   * Find the number of remaining requests for a given key
+   */
+  async remaining(key: string | number): Promise<number> {
+    const response = await this.rateLimiter.get(key)
+    if (!response || Number.isNaN(response.remainingPoints)) {
+      return this.rateLimiter.points
+    }
+
+    return response.remainingPoints
+  }
+
+  /**
    * Delete a given key
    */
   delete(key: string | number) {

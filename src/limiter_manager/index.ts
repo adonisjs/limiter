@@ -183,7 +183,7 @@ export class LimiterManager<Stores extends any, HttpLimiters extends any> {
    * Define allowed requests for a given duration
    */
   allowRequests(request: number) {
-    return new HttpLimiterConfigBuilder().allowRequests(request)
+    return new HttpLimiterConfigBuilder<Stores>().allowRequests(request)
   }
 
   /**

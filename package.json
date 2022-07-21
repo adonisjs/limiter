@@ -7,17 +7,21 @@
     "build/adonis-typings",
     "build/providers",
     "build/services",
-    "build/middleware",
     "build/src",
+    "build/templates",
+    "build/throttle",
     "build/config.js",
-    "build/config.d.ts"
+    "build/config.d.ts",
+    "build/instructions.md"
   ],
+  "types": "build/adonis-typings/index.d.ts",
   "scripts": {
     "pretest": "npm run lint",
     "test": "node --require=@adonisjs/require-ts/build/register bin/test.ts",
     "clean": "del-cli build",
+    "copyfiles": "copyfiles \"templates/**/*.txt\" \"instructions.md\" build",
     "compile": "npm run lint && npm run clean && tsc",
-    "build": "npm run compile",
+    "build": "npm run compile && npm run copyfiles",
     "release": "np --message=\"chore(release): %s\"",
     "version": "npm run build",
     "prepublishOnly": "npm run build",
@@ -45,6 +49,7 @@
     "@japa/spec-reporter": "^1.1.12",
     "@poppinss/dev-utils": "^2.0.3",
     "@types/node": "^18.0.6",
+    "copyfiles": "^2.4.1",
     "del-cli": "^4.0.1",
     "dotenv": "^16.0.1",
     "eslint": "^8.20.0",
@@ -103,5 +108,33 @@
   "dependencies": {
     "@poppinss/utils": "^5.0.0",
     "rate-limiter-flexible": "^2.3.7"
+  },
+  "adonisjs": {
+    "instructionsMd": "./build/instructions.md",
+    "preloads": ["./start/limiter"],
+    "templates": {
+      "config": [
+        {
+          "src": "config.txt",
+          "dest": "limiter"
+        }
+      ],
+      "contracts": [
+        {
+          "src": "contract.txt",
+          "dest": "limiter"
+        }
+      ],
+      "start": [
+        {
+          "src": "limiter.txt",
+          "dest": "limiter"
+        }
+      ]
+    },
+    "types": "@adonisjs/limiter",
+    "providers": [
+      "@adonisjs/limiter"
+    ]
   }
 }
