@@ -10,11 +10,14 @@ jobs:
         image: postgres
         env:
           POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: rate_limiter
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+        ports:
+          - 5432:5432
       redis:
         image: redis
         options: >-
@@ -24,6 +27,18 @@ jobs:
           --health-retries 5
         ports:
           - 6379:6379
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: rate_limiter
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     strategy:
       matrix:
         node-version:
@@ -44,6 +59,10 @@ jobs:
           PG_PORT: 5432
           PG_USER: postgres
           PG_PASSWORD: postgres
+          MYSQL_HOST: 0.0.0.0
+          MYSQL_PORT: 3306
+          MYSQL_USER: root
+          MYSQL_PASSWORD: ''
           REDIS_HOST: 0.0.0.0
           REDIS_PORT: 6379
           DB_NAME: rate_limiter
