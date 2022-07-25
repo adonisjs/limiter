@@ -64,6 +64,19 @@
     "prettier": "^2.7.1",
     "typescript": "^4.7.3"
   },
+  "peerDependencies": {
+    "@adonisjs/core": "^5.8.0",
+    "@adonisjs/lucid": "^18.1.0",
+    "@adonisjs/redis": "^7.3.0"
+  },
+  "peerDependenciesMeta": {
+    "@adonisjs/lucid": {
+      "optional": true
+    },
+    "@adonisjs/redis": {
+      "optional": true
+    }
+  },
   "eslintConfig": {
     "extends": [
       "plugin:adonis/typescriptPackage",
