@@ -9,7 +9,12 @@
 
 import { string } from '@poppinss/utils/build/helpers'
 import type { ApplicationContract } from '@ioc:Adonis/Core/Application'
-import { RateLimiterMySQL, RateLimiterPostgres, RateLimiterRedis } from 'rate-limiter-flexible'
+import {
+  RateLimiterMemory,
+  RateLimiterMySQL,
+  RateLimiterPostgres,
+  RateLimiterRedis,
+} from 'rate-limiter-flexible'
 
 import { Limiter } from '../limiter'
 import { HttpLimiterConfigBuilder } from '../config_builder'
@@ -61,6 +66,18 @@ export class LimiterManager<Stores extends any, HttpLimiters extends any> {
       `d:${this.timeToSeconds(config.duration)}`,
       ...(config.blockDuration ? [`bd:${this.timeToSeconds(config.blockDuration)}`] : []),
     ].join(',')
+  }
+
+  /**
+   * Create an instance of the In Memory Limiter (for testing)
+   */
+
+  protected createFake(config: RuntimeConfig) {
+    return new RateLimiterMemory({
+      points: config.requests,
+      duration: this.timeToSeconds(config.duration),
+      blockDuration: this.timeToSeconds(config.blockDuration),
+    })
   }
 
   /**
@@ -133,6 +150,8 @@ export class LimiterManager<Stores extends any, HttpLimiters extends any> {
         return new Limiter(this.createRedis(storeConfig, config))
       case 'db':
         return new Limiter(this.createDatabase(storeConfig, config))
+      case 'fake':
+        return new Limiter(this.createFake(config))
       default:
         throw InvalidClientException.invoke(storeConfig.client)
     }

@@ -17,18 +17,29 @@ test.group('Limiter manager', (group) => {
     return () => cleanup()
   })
 
-  group.each.setup(() => {
-    return () => resolve('Adonis/Addons/Redis').del('adonis_limiter:user_id_1')
-  })
+  test('create an instance of fake store', async ({ assert }) => {
+    const manager = new LimiterManager(
+      application,
+      {
+        default: 'fake',
+        stores: {
+          fake: {
+            client: 'fake',
+          } as const,
+        },
+      },
+      {}
+    )
 
-  group.each.setup(async () => {
-    await migrate('pg')
-    return () => rollback('pg')
-  })
+    const limiter = manager.use({ duration: '1 sec', requests: 5 })
+    await limiter.consume('user_id_1')
 
-  group.each.setup(async () => {
-    await migrate('mysql')
-    return () => rollback('mysql')
+    const response = await limiter.get('user_id_1')
+    assert.containsSubset(response, {
+      consumed: 1,
+      limit: 5,
+      remaining: 4,
+    })
   })
 
   test('create an instance of redis store', async ({ assert }) => {
@@ -55,6 +66,8 @@ test.group('Limiter manager', (group) => {
       limit: 5,
       remaining: 4,
     })
+  }).setup(() => {
+    return () => resolve('Adonis/Addons/Redis').del('adonis_limiter:user_id_1')
   })
 
   test('create an instance of mysql store', async ({ assert }) => {
@@ -83,6 +96,9 @@ test.group('Limiter manager', (group) => {
       limit: 5,
       remaining: 4,
     })
+  }).setup(async () => {
+    await migrate('mysql')
+    return () => rollback('mysql')
   })
 
   test('create an instance of postgresql store', async ({ assert }) => {
@@ -111,6 +127,9 @@ test.group('Limiter manager', (group) => {
       limit: 5,
       remaining: 4,
     })
+  }).setup(async () => {
+    await migrate('pg')
+    return () => rollback('pg')
   })
 
   test('raise exception when store is not defined in the config', async ({ assert }) => {

@@ -24,6 +24,13 @@ export type BaseLimiterConfig = {
 }
 
 /**
+ * In Memory specific config (only for testing)
+ */
+export type FakeLimiterConfig = BaseLimiterConfig & {
+  client: 'fake'
+}
+
+/**
  * Redis specific config
  */
 export type RedisLimiterConfig = BaseLimiterConfig & {
@@ -53,6 +60,9 @@ export interface LimiterBackendStores {
   }
   redis: {
     config: RedisLimiterConfig
+  }
+  fake: {
+    config: FakeLimiterConfig
   }
 }
 

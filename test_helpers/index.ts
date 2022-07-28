@@ -11,7 +11,12 @@ import { join } from 'node:path'
 import * as dotenv from 'dotenv'
 import { Filesystem } from '@poppinss/dev-utils'
 import { Application } from '@adonisjs/core/build/standalone'
-import { RateLimiterMySQL, RateLimiterPostgres, RateLimiterRedis } from 'rate-limiter-flexible'
+import {
+  RateLimiterMemory,
+  RateLimiterMySQL,
+  RateLimiterPostgres,
+  RateLimiterRedis,
+} from 'rate-limiter-flexible'
 
 dotenv.config()
 
@@ -149,6 +154,17 @@ export async function rollback(connection: 'pg' | 'mysql') {
  */
 export const resolve: typeof application.container.resolveBinding = (namespace: any) => {
   return application.container.resolveBinding(namespace)
+}
+
+/**
+ * Create Fake rate limiter
+ */
+export function getFakeLimiter(duration: number, points: number) {
+  return new RateLimiterMemory({
+    keyPrefix: 'adonis_limiter',
+    duration: duration / 1000,
+    points,
+  })
 }
 
 /**
