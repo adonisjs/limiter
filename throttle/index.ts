@@ -12,8 +12,7 @@ import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 
 import type { LimiterManager } from '../src/limiter_manager'
 import type { HttpLimiterConfigBuilder } from '../src/config_builder'
-import { ThrottleException } from '../src/exceptions/throttle_exception'
-import type { LimiterResponse, LimitExceededCallback, RuntimeConfig } from '../src/contracts'
+import type { RuntimeConfig } from '../src/contracts'
 
 /**
  * Throttle middleware
@@ -30,18 +29,6 @@ export default class ThrottleMiddleware {
   }
 
   /**
-   * Abort request
-   */
-  private abort(limiterResponse: LimiterResponse, limitedExceededCallback?: LimitExceededCallback) {
-    const error = ThrottleException.invoke(limiterResponse)
-    if (limitedExceededCallback) {
-      limitedExceededCallback(error)
-    }
-
-    throw error
-  }
-
-  /**
    * Rate limit request using a specific limiter
    */
   private async rateLimitRequest(
@@ -52,15 +39,6 @@ export default class ThrottleMiddleware {
     const { config, store, key, limitedExceededCallback } = configBuilder.toJSON()
     const throttleKey = `${httpLimiter}_${key || request.ip()}`
     const limiter = this.getLimiter(config, store as string | undefined)
-
-    const limiterResponse = await limiter.get(throttleKey)
-
-    /**
-     * Abort when user has exhausted all the requests
-     */
-    if (limiterResponse && limiterResponse.remaining <= 0) {
-      this.abort(limiterResponse, limitedExceededCallback)
-    }
 
     /**
      * Consume request
