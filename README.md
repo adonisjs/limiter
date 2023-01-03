@@ -8,7 +8,7 @@
   <h3>Rate Limiter</h3>
   <p>
 
-  AdonisJS limiter is built on top of [node-rate-limiter-flexible](https://github.com/animir/node-rate-limiter-flexible) with a more intutive API for creating multiple limiters at runtime.
+AdonisJS limiter is built on top of [node-rate-limiter-flexible](https://github.com/animir/node-rate-limiter-flexible) with a more intutive API for creating multiple limiters at runtime.
 
   </p>
 </div>
@@ -17,7 +17,7 @@
 
 <div align="center">
 
-[![gh-workflow-image]][gh-workflow-url] [![typescript-image]][typescript-url] [![npm-image]][npm-url] [![license-image]][license-url]  [![synk-image]][synk-url]
+[![gh-workflow-image]][gh-workflow-url] [![typescript-image]][typescript-url] [![npm-image]][npm-url] [![license-image]][license-url] [![synk-image]][synk-url]
 
 </div>
 
@@ -42,16 +42,12 @@
 </div>
 
 [gh-workflow-image]: https://img.shields.io/github/workflow/status/adonisjs/limiter/test?style=for-the-badge
-[gh-workflow-url]: https://github.com/adonisjs/limiter/actions/workflows/test.yml "Github action"
-
+[gh-workflow-url]: https://github.com/adonisjs/limiter/actions/workflows/test.yml 'Github action'
 [typescript-image]: https://img.shields.io/badge/Typescript-294E80.svg?style=for-the-badge&logo=typescript
-[typescript-url]:  "typescript"
-
+[typescript-url]: "typescript"
 [npm-image]: https://img.shields.io/npm/v/@adonisjs/limiter/alpha.svg?style=for-the-badge&logo=npm
-[npm-url]: https://www.npmjs.com/package/@adonisjs/limiter/v/alpha "npm"
-
+[npm-url]: https://www.npmjs.com/package/@adonisjs/limiter/v/alpha 'npm'
 [license-image]: https://img.shields.io/npm/l/@adonisjs/limiter?color=blueviolet&style=for-the-badge
-[license-url]: LICENSE.md "license"
-
+[license-url]: LICENSE.md 'license'
 [synk-image]: https://img.shields.io/snyk/vulnerabilities/github/adonisjs/limiter?label=Synk%20Vulnerabilities&style=for-the-badge
-[synk-url]: https://snyk.io/test/github/adonisjs/limiter?targetFile=package.json "synk"
+[synk-url]: https://snyk.io/test/github/adonisjs/limiter?targetFile=package.json 'synk'
