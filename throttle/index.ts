@@ -58,7 +58,7 @@ export default class ThrottleMiddleware {
     /**
      * Abort when user has exhausted all the requests
      */
-    if (limiterResponse && limiterResponse.remaining <= 0) {
+    if (limiterResponse && limiterResponse.remaining < 0) {
       this.abort(limiterResponse, limitedExceededCallback)
     }
 

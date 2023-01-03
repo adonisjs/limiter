@@ -154,12 +154,13 @@ export const resolve: typeof application.container.resolveBinding = (namespace: 
 /**
  * Create redis rate limiter
  */
-export function getRedisLimiter(duration: number, points: number) {
+export function getRedisLimiter(duration: number, points: number, blockDuration?: number) {
   return new RateLimiterRedis({
     storeClient: resolve('Adonis/Addons/Redis').connection().ioConnection,
     keyPrefix: 'adonis_limiter',
     duration: duration / 1000,
     points,
+    blockDuration: blockDuration ? blockDuration / 1000 : undefined,
   })
 }
 
@@ -169,7 +170,8 @@ export function getRedisLimiter(duration: number, points: number) {
 export function getDatabaseRateLimiter(
   connection: 'pg' | 'mysql',
   duration: number,
-  points: number
+  points: number,
+  blockDuration?: number
 ) {
   const config = {
     storeClient: resolve('Adonis/Lucid/Database').connection(connection).getWriteClient(),
@@ -180,6 +182,7 @@ export function getDatabaseRateLimiter(
     tableCreated: true,
     duration: duration / 1000,
     points,
+    blockDuration: blockDuration ? blockDuration / 1000 : undefined,
   }
 
   return connection === 'pg' ? new RateLimiterPostgres(config) : new RateLimiterMySQL(config)

@@ -89,4 +89,27 @@ test.group('Limiter | Mysql', (group) => {
     const response = await limiter.get('user_id_1')
     assert.isNull(response)
   })
+
+  test('block when consume points exceeds limit for a given key with block duration', async ({
+    assert,
+  }) => {
+    assert.plan(6)
+
+    const limiter = new Limiter(getDatabaseRateLimiter('mysql', 1000 * 10, 1, 1000 * 60))
+    await limiter.consume('user_id_1')
+
+    try {
+      await limiter.consume('user_id_1')
+    } catch (error) {
+      assert.instanceOf(error, ThrottleException)
+      assert.containsSubset(error, {
+        remaining: 0,
+        limit: 1,
+      })
+      assert.exists(error?.retryAfter)
+      assert.isNumber(error?.retryAfter)
+      assert.isAtLeast(error?.retryAfter as number, 1000 * 10)
+      assert.isAtMost(error?.retryAfter as number, 1000 * 60)
+    }
+  })
 })
