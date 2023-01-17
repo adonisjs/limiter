@@ -23,7 +23,9 @@ test.group('Limiter | Redis', (group) => {
   })
 
   test('consume requests for a given key', async ({ assert }) => {
-    const limiter = new Limiter(getRedisLimiter(1000 * 10, 5))
+    const limiter = new Limiter(
+      getRedisLimiter({ duration: 1000 * 10, blockDuration: 1000 * 60, points: 5 })
+    )
     await limiter.consume('user_id_1')
 
     const response = await limiter.get('user_id_1')
@@ -32,12 +34,14 @@ test.group('Limiter | Redis', (group) => {
       remaining: 4,
       limit: 5,
     })
+    assert.exists(response?.retryAfter)
+    assert.isAtMost(response?.retryAfter as number, 1000 * 10)
   })
 
   test('fail when enable to consume', async ({ assert }) => {
     assert.plan(2)
 
-    const limiter = new Limiter(getRedisLimiter(1000 * 10, 1))
+    const limiter = new Limiter(getRedisLimiter({ duration: 1000 * 10, points: 1 }))
     await limiter.consume('user_id_1')
 
     try {
@@ -54,7 +58,7 @@ test.group('Limiter | Redis', (group) => {
   test('fail when trying to consume requests on a blocked key', async ({ assert }) => {
     assert.plan(2)
 
-    const limiter = new Limiter(getRedisLimiter(1000 * 10, 1))
+    const limiter = new Limiter(getRedisLimiter({ duration: 1000 * 10, points: 1 }))
     await limiter.block('user_id_1', 1000 * 10)
 
     try {
@@ -69,7 +73,7 @@ test.group('Limiter | Redis', (group) => {
   })
 
   test('set requests consumed for a given key', async ({ assert }) => {
-    const limiter = new Limiter(getRedisLimiter(1000 * 10, 5))
+    const limiter = new Limiter(getRedisLimiter({ duration: 1000 * 10, points: 5 }))
     await limiter.set('user_id_1', 10, 1000 * 10)
 
     const response = await limiter.get('user_id_1')
@@ -81,11 +85,35 @@ test.group('Limiter | Redis', (group) => {
   })
 
   test('delete key', async ({ assert }) => {
-    const limiter = new Limiter(getRedisLimiter(1000 * 10, 5))
+    const limiter = new Limiter(getRedisLimiter({ duration: 1000 * 10, points: 5 }))
     await limiter.set('user_id_1', 10, 1000 * 10)
     await limiter.delete('user_id_1')
 
     const response = await limiter.get('user_id_1')
     assert.isNull(response)
+  })
+
+  test('block when consume points exceeds limit for a given key with block duration', async ({
+    assert,
+  }) => {
+    assert.plan(5)
+
+    const limiter = new Limiter(
+      getRedisLimiter({ duration: 1000 * 10, blockDuration: 1000 * 60, points: 1 })
+    )
+    await limiter.consume('user_id_1')
+
+    try {
+      await limiter.consume('user_id_1')
+    } catch (error) {
+      assert.instanceOf(error, ThrottleException)
+      assert.containsSubset(error, {
+        remaining: 0,
+        limit: 1,
+      })
+      assert.exists(error?.retryAfter)
+      assert.isAtLeast(error?.retryAfter as number, 1000 * 10)
+      assert.isAtMost(error?.retryAfter as number, 1000 * 60)
+    }
   })
 })
