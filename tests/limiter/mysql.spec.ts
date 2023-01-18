@@ -42,6 +42,7 @@ test.group('Limiter | Mysql', (group) => {
       limit: 5,
     })
     assert.exists(response?.retryAfter)
+    assert.isNumber(response?.retryAfter)
     assert.isAtMost(response?.retryAfter as number, 1000 * 10)
   })
 
@@ -111,7 +112,7 @@ test.group('Limiter | Mysql', (group) => {
   test('block when consume points exceeds limit for a given key with block duration', async ({
     assert,
   }) => {
-    assert.plan(5)
+    assert.plan(6)
 
     const limiter = new Limiter(
       getDatabaseRateLimiter({
@@ -132,6 +133,7 @@ test.group('Limiter | Mysql', (group) => {
         limit: 1,
       })
       assert.exists(error?.retryAfter)
+      assert.isNumber(error?.retryAfter)
       assert.isAtLeast(error?.retryAfter as number, 1000 * 10)
       assert.isAtMost(error?.retryAfter as number, 1000 * 60)
     }
