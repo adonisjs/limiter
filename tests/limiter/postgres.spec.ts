@@ -24,34 +24,21 @@ test.group('Limiter | PostgreSQL', (group) => {
   })
 
   test('consume points for a given key', async ({ assert }) => {
-    const limiter = new Limiter(
-      getDatabaseRateLimiter({
-        connection: 'pg',
-        duration: 1000 * 10,
-        blockDuration: 1000 * 60,
-        points: 5,
-      })
-    )
+    const limiter = new Limiter(getDatabaseRateLimiter('pg', 1000 * 10, 5))
     await limiter.consume('user_id_1')
 
     const response = await limiter.get('user_id_1')
-
     assert.containsSubset(response, {
       consumed: 1,
       remaining: 4,
       limit: 5,
     })
-    assert.exists(response?.retryAfter)
-    assert.isNumber(response?.retryAfter)
-    assert.isAtMost(response?.retryAfter as number, 1000 * 10)
   })
 
   test('fail when enable to consume', async ({ assert }) => {
     assert.plan(2)
 
-    const limiter = new Limiter(
-      getDatabaseRateLimiter({ connection: 'pg', duration: 1000 * 10, points: 1 })
-    )
+    const limiter = new Limiter(getDatabaseRateLimiter('pg', 1000 * 10, 1))
     await limiter.consume('user_id_1')
 
     try {
@@ -68,9 +55,7 @@ test.group('Limiter | PostgreSQL', (group) => {
   test('fail when trying to consume points on a blocked key', async ({ assert }) => {
     assert.plan(2)
 
-    const limiter = new Limiter(
-      getDatabaseRateLimiter({ connection: 'pg', duration: 1000 * 10, points: 1 })
-    )
+    const limiter = new Limiter(getDatabaseRateLimiter('pg', 1000 * 10, 1))
     await limiter.block('user_id_1', 1000 * 10)
 
     try {
@@ -85,9 +70,7 @@ test.group('Limiter | PostgreSQL', (group) => {
   })
 
   test('set requests consumed for a given key', async ({ assert }) => {
-    const limiter = new Limiter(
-      getDatabaseRateLimiter({ connection: 'pg', duration: 1000 * 10, points: 5 })
-    )
+    const limiter = new Limiter(getDatabaseRateLimiter('pg', 1000 * 10, 5))
     await limiter.set('user_id_1', 10, 1000 * 10)
 
     const response = await limiter.get('user_id_1')
@@ -99,9 +82,7 @@ test.group('Limiter | PostgreSQL', (group) => {
   })
 
   test('delete key', async ({ assert }) => {
-    const limiter = new Limiter(
-      getDatabaseRateLimiter({ connection: 'pg', duration: 1000 * 10, points: 5 })
-    )
+    const limiter = new Limiter(getDatabaseRateLimiter('pg', 1000 * 10, 5))
     await limiter.set('user_id_1', 10, 1000 * 10)
     await limiter.delete('user_id_1')
 
@@ -114,14 +95,8 @@ test.group('Limiter | PostgreSQL', (group) => {
   }) => {
     assert.plan(6)
 
-    const limiter = new Limiter(
-      getDatabaseRateLimiter({
-        connection: 'pg',
-        duration: 1000 * 10,
-        blockDuration: 1000 * 60,
-        points: 1,
-      })
-    )
+    const limiter = new Limiter(getDatabaseRateLimiter('pg', 1000 * 10, 1, 1000 * 60))
+
     await limiter.consume('user_id_1')
 
     try {

@@ -11,14 +11,7 @@ import { join } from 'node:path'
 import * as dotenv from 'dotenv'
 import { Filesystem } from '@poppinss/dev-utils'
 import { Application } from '@adonisjs/core/build/standalone'
-import {
-  IRateLimiterRedisOptions,
-  IRateLimiterStoreNoAutoExpiryOptions,
-  RateLimiterMySQL,
-  RateLimiterPostgres,
-  RateLimiterRedis,
-} from 'rate-limiter-flexible'
-import { DatabaseRateLimiterTestConfig, RedisRateLimiterTestConfig } from './contracts'
+import { RateLimiterMySQL, RateLimiterPostgres, RateLimiterRedis } from 'rate-limiter-flexible'
 
 dotenv.config()
 
@@ -161,31 +154,26 @@ export const resolve: typeof application.container.resolveBinding = (namespace: 
 /**
  * Create redis rate limiter
  */
-export function getRedisLimiter({ duration, blockDuration, points }: RedisRateLimiterTestConfig) {
-  const config: IRateLimiterRedisOptions = {
+export function getRedisLimiter(duration: number, points: number, blockDuration?: number) {
+  return new RateLimiterRedis({
     storeClient: resolve('Adonis/Addons/Redis').connection().ioConnection,
     keyPrefix: 'adonis_limiter',
     duration: duration / 1000,
     points,
-  }
-
-  if (blockDuration) {
-    config.blockDuration = blockDuration / 1000
-  }
-
-  return new RateLimiterRedis(config)
+    blockDuration: blockDuration ? blockDuration / 1000 : undefined,
+  })
 }
 
 /**
  * Create database rate limiter
  */
-export function getDatabaseRateLimiter({
-  connection,
-  duration,
-  blockDuration,
-  points,
-}: DatabaseRateLimiterTestConfig) {
-  const config: IRateLimiterStoreNoAutoExpiryOptions = {
+export function getDatabaseRateLimiter(
+  connection: 'pg' | 'mysql',
+  duration: number,
+  points: number,
+  blockDuration?: number
+) {
+  const config = {
     storeClient: resolve('Adonis/Lucid/Database').connection(connection).getWriteClient(),
     storeType: 'knex',
     dbName: process.env.DB_NAME,
@@ -194,10 +182,7 @@ export function getDatabaseRateLimiter({
     tableCreated: true,
     duration: duration / 1000,
     points,
-  }
-
-  if (blockDuration) {
-    config.blockDuration = blockDuration / 1000
+    blockDuration: blockDuration ? blockDuration / 1000 : undefined,
   }
 
   return connection === 'pg' ? new RateLimiterPostgres(config) : new RateLimiterMySQL(config)
