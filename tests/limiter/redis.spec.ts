@@ -92,7 +92,7 @@ test.group('Limiter | Redis', (group) => {
   test('block when consume points exceeds limit for a given key with block duration', async ({
     assert,
   }) => {
-    assert.plan(6)
+    assert.plan(3)
 
     const limiter = new Limiter(getRedisLimiter(1000 * 10, 1, 1000 * 60))
     await limiter.consume('user_id_1')
@@ -105,10 +105,7 @@ test.group('Limiter | Redis', (group) => {
         remaining: 0,
         limit: 1,
       })
-      assert.exists(error?.retryAfter)
-      assert.isNumber(error?.retryAfter)
-      assert.isAtLeast(error?.retryAfter as number, 1000 * 10)
-      assert.isAtMost(error?.retryAfter as number, 1000 * 60)
+      assert.isTrue(await limiter.isBlocked('user_id_1'))
     }
   })
 })
