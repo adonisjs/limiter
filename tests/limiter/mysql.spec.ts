@@ -8,19 +8,18 @@
  */
 
 import { test } from '@japa/runner'
-import { ThrottleException } from '../../src/exceptions/throttle_exception'
-import { Limiter } from '../../src/limiter'
-import { setup, cleanup, getDatabaseRateLimiter, migrate, rollback } from '../../test_helpers'
+import { ThrottleException } from '../../src/exceptions/throttle_exception.js'
+import { Limiter } from '../../src/limiter_store.js'
+import { database, getDatabaseRateLimiter, migrate, rollback } from '../../test_helpers/index.js'
 
 test.group('Limiter | Mysql', (group) => {
   group.each.setup(async () => {
-    await setup()
-    return () => cleanup()
-  })
-
-  group.each.setup(async () => {
     await migrate('mysql')
     return () => rollback('mysql')
+  })
+
+  group.teardown(async () => {
+    await database.manager.closeAll()
   })
 
   test('consume points for a given key', async ({ assert }) => {

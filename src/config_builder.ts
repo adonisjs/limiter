@@ -7,13 +7,13 @@
  * file that was distributed with this source code.
  */
 
-import { RuntimeConfig, LimitExceededCallback } from '../contracts'
+import { RuntimeConfig, LimitExceededCallback } from './types/main.js'
 
 /**
  * Config builder for HTTP rate limiters
  */
 export class HttpLimiterConfigBuilder<Stores extends any> {
-  private options: {
+  #options: {
     config: RuntimeConfig
     limitedExceededCallback?: LimitExceededCallback
     key?: string
@@ -29,7 +29,7 @@ export class HttpLimiterConfigBuilder<Stores extends any> {
    * Allow a given number of requests
    */
   allowRequests(requests: number): this {
-    this.options.config.requests = requests
+    this.#options.config.requests = requests
     return this
   }
 
@@ -37,7 +37,7 @@ export class HttpLimiterConfigBuilder<Stores extends any> {
    * Define duration for rate limiting requests
    */
   every(duration: number | string): this {
-    this.options.config.duration = duration
+    this.#options.config.duration = duration
     return this
   }
 
@@ -47,7 +47,7 @@ export class HttpLimiterConfigBuilder<Stores extends any> {
    * the requests
    */
   blockFor(duration: number | string): this {
-    this.options.config.blockDuration = duration
+    this.#options.config.blockDuration = duration
     return this
   }
 
@@ -56,7 +56,7 @@ export class HttpLimiterConfigBuilder<Stores extends any> {
    * is exceeded
    */
   limitExceeded(callback: LimitExceededCallback): this {
-    this.options.limitedExceededCallback = callback
+    this.#options.limitedExceededCallback = callback
     return this
   }
 
@@ -64,7 +64,7 @@ export class HttpLimiterConfigBuilder<Stores extends any> {
    * Use a custom key for throttling
    */
   usingKey(key: string): this {
-    this.options.key = key
+    this.#options.key = key
     return this
   }
 
@@ -72,7 +72,7 @@ export class HttpLimiterConfigBuilder<Stores extends any> {
    * Use a specific backend store
    */
   store(store: keyof Stores): this {
-    this.options.store = store
+    this.#options.store = store
     return this
   }
 
@@ -80,6 +80,6 @@ export class HttpLimiterConfigBuilder<Stores extends any> {
    * Returns configured options
    */
   toJSON() {
-    return this.options
+    return this.#options
   }
 }

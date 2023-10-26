@@ -7,45 +7,133 @@
  * file that was distributed with this source code.
  */
 
+/// <reference types="@adonisjs/lucid/database_provider" />
+/// <reference types="@adonisjs/redis/redis_provider" />
+
 import { test } from '@japa/runner'
-import { LimiterManager } from '../src/limiter_manager'
-import { setup, cleanup, application, resolve, migrate, rollback } from '../test_helpers'
+import { LimiterManager } from '../src/limiter_manager.js'
+// import { app, database, redis, migrate, rollback } from '../test_helpers/index.js'
+import { defineConfig as redisConfig } from '@adonisjs/redis'
+import { defineConfig as databaseConfig } from '@adonisjs/lucid'
+import { AppFactory } from '@adonisjs/core/factories/app'
+import { ApplicationService } from '@adonisjs/core/types'
+import { defineConfig, stores } from '../src/define_config.js'
+
+import 'dotenv/config'
+import type { Database } from '@adonisjs/lucid/database'
+
+const BASE_URL = new URL('./', import.meta.url)
+
+const app = new AppFactory().create(BASE_URL, () => {}) as ApplicationService
+app.rcContents({
+  providers: [
+    () => import('@adonisjs/core/providers/app_provider'),
+    () => import('@adonisjs/redis/redis_provider'),
+    () => import('@adonisjs/lucid/database_provider'),
+  ],
+})
+app.useConfig({
+  logger: {
+    default: 'main',
+    loggers: {
+      main: {},
+    },
+  },
+  redis: redisConfig({
+    connection: 'main',
+    connections: {
+      main: {
+        host: process.env.REDIS_HOST,
+        port: process.env.REDIS_PORT,
+      },
+    },
+  }),
+  database: databaseConfig({
+    connection: 'pg',
+    connections: {
+      pg: {
+        client: 'pg',
+        connection: {
+          host: process.env.PG_HOST,
+          port: Number(process.env.PG_PORT || 5432),
+          database: process.env.DB_NAME,
+          user: process.env.PG_USER,
+          password: process.env.PG_PASSWORD,
+        },
+      },
+      mysql: {
+        client: 'mysql',
+        version: '5.7',
+        connection: {
+          host: process.env.MYSQL_HOST,
+          port: Number(process.env.MYSQL_PORT),
+          database: process.env.DB_NAME,
+          user: process.env.MYSQL_USER,
+          password: process.env.MYSQL_PASSWORD,
+        },
+      },
+    },
+  }),
+})
+
+await app.init()
+await app.boot()
+
+const database = await app.container.make('lucid.db')
+const redis = await app.container.make('redis')
+
+/**
+ * Migrate database
+ */
+export async function migrate(connection: 'pg' | 'mysql', db: Database) {
+  await db.connection(connection).schema.createTable('rate_limits', (table) => {
+    table.string('key', 255).notNullable().primary()
+    table.integer('points', 9).notNullable()
+    table.bigint('expire').unsigned()
+  })
+}
+
+/**
+ * Rollback database
+ */
+export async function rollback(connection: 'pg' | 'mysql', db: Database) {
+  await db.connection(connection).schema.dropTable('rate_limits')
+}
 
 test.group('Limiter manager', (group) => {
   group.each.setup(async () => {
-    await setup()
-    return () => cleanup()
+    return async () => {
+      await redis.del('adonis_limiter:user_id_1')
+    }
   })
 
-  group.each.setup(() => {
-    return () => resolve('Adonis/Addons/Redis').del('adonis_limiter:user_id_1')
-  })
-
-  group.each.setup(async () => {
-    await migrate('pg')
-    return () => rollback('pg')
+  group.teardown(async () => {
+    await database.manager.closeAll()
+    await redis.disconnectAll()
   })
 
   group.each.setup(async () => {
-    await migrate('mysql')
-    return () => rollback('mysql')
+    await migrate('pg', database)
+    return () => rollback('pg', database)
+  })
+
+  group.each.setup(async () => {
+    await migrate('mysql', database)
+    return () => rollback('mysql', database)
   })
 
   test('create an instance of redis store', async ({ assert }) => {
-    const manager = new LimiterManager(
-      application,
-      {
-        default: 'redis',
-        stores: {
-          redis: {
-            client: 'redis',
-            connectionName: 'local',
-          } as const,
-        },
+    const config = await defineConfig({
+      default: 'redis',
+      stores: {
+        redis: stores.redis({
+          client: 'redis',
+          connectionName: 'main',
+        }),
       },
-      {}
-    )
+    }).resolver(app)
 
+    const manager = new LimiterManager(config as any, {})
     const limiter = manager.use({ duration: '1 sec', requests: 5 })
     await limiter.consume('user_id_1')
 
@@ -58,22 +146,19 @@ test.group('Limiter manager', (group) => {
   })
 
   test('create an instance of mysql store', async ({ assert }) => {
-    const manager = new LimiterManager(
-      application,
-      {
-        default: 'db',
-        stores: {
-          db: {
-            client: 'db',
-            dbName: process.env.DB_NAME!,
-            tableName: 'rate_limits',
-            connectionName: 'mysql',
-          },
-        },
+    const config = await defineConfig({
+      default: 'db',
+      stores: {
+        db: stores.db({
+          client: 'db',
+          connectionName: 'mysql',
+          dbName: 'adonis_limiter',
+          tableName: 'rate_limits',
+        }),
       },
-      {}
-    )
+    }).resolver(app)
 
+    const manager = new LimiterManager(config as any, {})
     const limiter = manager.use({ duration: '1 sec', requests: 5 })
     await limiter.consume('user_id_1')
 
@@ -86,22 +171,19 @@ test.group('Limiter manager', (group) => {
   })
 
   test('create an instance of postgresql store', async ({ assert }) => {
-    const manager = new LimiterManager(
-      application,
-      {
-        default: 'db',
-        stores: {
-          db: {
-            client: 'db',
-            dbName: process.env.DB_NAME!,
-            tableName: 'rate_limits',
-            connectionName: 'pg',
-          },
-        },
+    const config = await defineConfig({
+      default: 'db',
+      stores: {
+        db: stores.db({
+          client: 'db',
+          connectionName: 'pg',
+          dbName: 'adonis_limiter',
+          tableName: 'rate_limits',
+        }),
       },
-      {}
-    )
+    }).resolver(app)
 
+    const manager = new LimiterManager(config as any, {})
     const limiter = manager.use({ duration: '1 sec', requests: 5 })
     await limiter.consume('user_id_1')
 
@@ -114,65 +196,65 @@ test.group('Limiter manager', (group) => {
   })
 
   test('raise exception when store is not defined in the config', async ({ assert }) => {
-    const manager = new LimiterManager(
-      application,
-      {
-        default: 'db',
-        stores: {
-          db: {
-            client: 'db',
-            dbName: process.env.DB_NAME!,
-            tableName: 'rate_limits',
-            connectionName: 'pg',
-          },
-        },
+    const config = await defineConfig({
+      default: 'db',
+      stores: {
+        db: stores.db({
+          client: 'db',
+          connectionName: 'pg',
+          dbName: 'adonis_limiter',
+          tableName: 'rate_limits',
+        }),
       },
-      {}
-    )
+    }).resolver(app)
+    const manager = new LimiterManager(config as any, {})
 
     assert.throws(
       () => manager.use('redis' as any, { duration: '1 sec', requests: 5 }),
-      'E_UNRECOGNIZED_LIMITER_STORE: Unrecognized limiter store "redis". Make sure to define it inside "config/limiter.ts" file'
+      'Unrecognized limiter store "redis". Make sure to define it inside "config/limiter.ts" file'
     )
   })
 
   test('raise exception when store client is invalid', async ({ assert }) => {
-    const manager = new LimiterManager(
-      application,
-      {
-        default: 'db',
-        stores: {
-          db: {
-            client: 'mongo' as any,
-            dbName: process.env.DB_NAME!,
-            tableName: 'rate_limits',
-            connectionName: 'pg',
-          },
-        },
-      },
-      {}
-    )
-
+    assert.plan(2)
     assert.throws(
-      () => manager.use({ duration: '1 sec', requests: 5 }),
-      'E_INVALID_LIMITER_CLIENT: Invalid limiter client "mongo"'
+      () =>
+        defineConfig({
+          default: 'db',
+          stores: {
+            db: stores.db({
+              client: 'mongo' as any,
+            } as any),
+          },
+        }).resolver(app),
+      'Invalid limiter client "mongo"'
+    )
+    assert.throws(
+      () =>
+        defineConfig({
+          default: 'redis',
+          stores: {
+            redis: stores.redis({
+              client: 'memcached' as any,
+            } as any),
+          },
+        }).resolver(app),
+      'Invalid limiter client "memcached"'
     )
   })
 
   test('return cached limiter when runtime config is same', async ({ assert }) => {
-    const manager = new LimiterManager(
-      application,
-      {
-        default: 'redis',
-        stores: {
-          redis: {
-            client: 'redis',
-            connectionName: 'local',
-          } as const,
-        },
+    const config = await defineConfig({
+      default: 'redis',
+      stores: {
+        redis: stores.redis({
+          client: 'redis',
+          connectionName: 'main',
+        }),
       },
-      {}
-    )
+    }).resolver(app)
+
+    const manager = new LimiterManager(config as any, {})
 
     const limiter = manager.use({ duration: '1 sec', requests: 5 })
     Object.defineProperty(limiter, 'foo', { value: 'bar' })
@@ -181,21 +263,19 @@ test.group('Limiter manager', (group) => {
   })
 
   test('define http limiters', async ({ assert }) => {
-    const manager = new LimiterManager(
-      application,
-      {
-        default: 'db',
-        stores: {
-          db: {
-            client: 'db',
-            dbName: process.env.DB_NAME!,
-            tableName: 'rate_limits',
-            connectionName: 'pg',
-          },
-        },
+    const config = await defineConfig({
+      default: 'db',
+      stores: {
+        db: stores.db({
+          client: 'db',
+          connectionName: 'pg',
+          dbName: 'adonis_limiter',
+          tableName: 'rate_limits',
+        }),
       },
-      {}
-    )
+    }).resolver(app)
+
+    const manager = new LimiterManager(config as any, {})
 
     const { httpLimiters } = manager
       .define('main', () => {

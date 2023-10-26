@@ -1,85 +1,36 @@
-/*
- * @fosterin/persona
- *
- * (c) Harminder Virk
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
+import { AppFactory } from '@adonisjs/core/factories/app'
+import { LoggerFactory } from '@adonisjs/core/factories/logger'
+import { Emitter } from '@adonisjs/core/events'
+import { RedisManager } from '@adonisjs/redis'
+import { Database } from '@adonisjs/lucid/database'
+import { RateLimiterRedis, RateLimiterMySQL, RateLimiterPostgres } from 'rate-limiter-flexible'
+import { ApplicationService } from '@adonisjs/core/types'
 
-import { join } from 'node:path'
-import * as dotenv from 'dotenv'
-import { Filesystem } from '@poppinss/dev-utils'
-import { Application } from '@adonisjs/core/build/standalone'
-import { RateLimiterMySQL, RateLimiterPostgres, RateLimiterRedis } from 'rate-limiter-flexible'
+import 'dotenv/config'
 
-dotenv.config()
+export const BASE_URL = new URL('./tmp/', import.meta.url)
 
-// eslint-disable-next-line unicorn/prefer-module
-export const fs = new Filesystem(join(__dirname, '__app'))
+export const app = new AppFactory().create(BASE_URL, () => {}) as ApplicationService
+const emitter = new Emitter(app)
+const logger = new LoggerFactory().create()
 
-export let application: Application
+export const redis = new RedisManager(
+  {
+    connection: 'local',
+    connections: {
+      local: {
+        host: process.env.REDIS_HOST,
+        port: process.env.REDIS_PORT,
+      },
+    },
+  },
+  logger
+)
 
-/**
- * Setup AdonisJS application
- */
-export async function setup() {
-  application = new Application(fs.basePath, 'web', {
-    providers: ['@adonisjs/core', '@adonisjs/lucid', '@adonisjs/redis'],
-  })
-
-  await fs.fsExtra.ensureDir(join(fs.basePath, 'database'))
-
-  await fs.add(
-    'config/app.ts',
-    `
-    export const profiler = { enabled: true }
-    export const appKey = 'averylongrandomsecretkey'
-    export const http = {
-      trustProxy: () => {},
-      cookie: {}
-    }
-  `
-  )
-
-  await fs.add(
-    'config/hash.ts',
-    `
-    const hashConfig = {
-      default: 'argon2',
-      list: {
-        argon2: {
-          driver: 'argon2'
-        },
-      }
-    }
-    export default hashConfig
-  `
-  )
-
-  await fs.add(
-    'config/redis.ts',
-    `
-    const redisConfig = {
-      connection: 'local',
-      connections: {
-        local: {
-          host: process.env.REDIS_HOST,
-          port: process.env.REDIS_PORT,
-        }
-      }
-    }
-    export default redisConfig
-  `
-  )
-
-  await fs.add(
-    'config/database.ts',
-    `
-    import { join } from 'path'
-
-    export const connection = 'pg'
-    export const connections = {
+export const database = new Database(
+  {
+    connection: 'pg',
+    connections: {
       pg: {
         client: 'pg',
         connection: {
@@ -88,7 +39,7 @@ export async function setup() {
           database: process.env.DB_NAME,
           user: process.env.PG_USER,
           password: process.env.PG_PASSWORD,
-        }
+        },
       },
       mysql: {
         client: 'mysql',
@@ -99,64 +50,20 @@ export async function setup() {
           database: process.env.DB_NAME,
           user: process.env.MYSQL_USER,
           password: process.env.MYSQL_PASSWORD,
-        }
-      }
-    }
-  `
-  )
-
-  await application.setup()
-  await application.registerProviders()
-  await application.bootProviders()
-
-  return application
-}
-
-/**
- * Cleanup open connections
- */
-export async function cleanup() {
-  const database = application.container.resolveBinding('Adonis/Lucid/Database')
-  const redis = application.container.resolveBinding('Adonis/Addons/Redis')
-
-  await database.manager.closeAll()
-  await redis.disconnectAll()
-  await fs.cleanup()
-}
-
-/**
- * Migrate database
- */
-export async function migrate(connection: 'pg' | 'mysql') {
-  const database = application.container.resolveBinding('Adonis/Lucid/Database')
-  await database.connection(connection).schema.createTable('rate_limits', (table) => {
-    table.string('key', 255).notNullable().primary()
-    table.integer('points', 9).notNullable()
-    table.bigint('expire').unsigned()
-  })
-}
-
-/**
- * Rollback database
- */
-export async function rollback(connection: 'pg' | 'mysql') {
-  const database = application.container.resolveBinding('Adonis/Lucid/Database')
-  await database.connection(connection).schema.dropTable('rate_limits')
-}
-
-/**
- * Resolve container binding
- */
-export const resolve: typeof application.container.resolveBinding = (namespace: any) => {
-  return application.container.resolveBinding(namespace)
-}
+        },
+      },
+    },
+  },
+  logger,
+  emitter
+)
 
 /**
  * Create redis rate limiter
  */
 export function getRedisLimiter(duration: number, points: number, blockDuration?: number) {
   return new RateLimiterRedis({
-    storeClient: resolve('Adonis/Addons/Redis').connection().ioConnection,
+    storeClient: redis.connection().ioConnection,
     keyPrefix: 'adonis_limiter',
     duration: duration / 1000,
     points,
@@ -174,7 +81,7 @@ export function getDatabaseRateLimiter(
   blockDuration?: number
 ) {
   const config = {
-    storeClient: resolve('Adonis/Lucid/Database').connection(connection).getWriteClient(),
+    storeClient: database.connection(connection).getWriteClient(),
     storeType: 'knex',
     dbName: process.env.DB_NAME,
     tableName: 'rate_limits',
@@ -186,4 +93,22 @@ export function getDatabaseRateLimiter(
   }
 
   return connection === 'pg' ? new RateLimiterPostgres(config) : new RateLimiterMySQL(config)
+}
+
+/**
+ * Migrate database
+ */
+export async function migrate(connection: 'pg' | 'mysql') {
+  await database.connection(connection).schema.createTable('rate_limits', (table) => {
+    table.string('key', 255).notNullable().primary()
+    table.integer('points', 9).notNullable()
+    table.bigint('expire').unsigned()
+  })
+}
+
+/**
+ * Rollback database
+ */
+export async function rollback(connection: 'pg' | 'mysql') {
+  await database.connection(connection).schema.dropTable('rate_limits')
 }

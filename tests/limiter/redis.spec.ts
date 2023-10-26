@@ -8,18 +8,19 @@
  */
 
 import { test } from '@japa/runner'
-import { ThrottleException } from '../../src/exceptions/throttle_exception'
-import { Limiter } from '../../src/limiter'
-import { setup, cleanup, getRedisLimiter, resolve } from '../../test_helpers'
+import { ThrottleException } from '../../src/exceptions/throttle_exception.js'
+import { Limiter } from '../../src/limiter_store.js'
+import { redis, getRedisLimiter } from '../../test_helpers/index.js'
 
 test.group('Limiter | Redis', (group) => {
   group.each.setup(async () => {
-    await setup()
-    return () => cleanup()
+    return async () => {
+      await redis.del('adonis_limiter:user_id_1')
+    }
   })
 
-  group.each.setup(() => {
-    return () => resolve('Adonis/Addons/Redis').del('adonis_limiter:user_id_1')
+  group.teardown(async () => {
+    await redis.disconnectAll()
   })
 
   test('consume requests for a given key', async ({ assert }) => {

@@ -7,10 +7,12 @@
  * file that was distributed with this source code.
  */
 
-export interface LimiterStores {}
-export interface HttpLimiters {}
+import app from '@adonisjs/core/services/app'
+import { LimiterService } from '../src/types/main.js'
 
-import application from '@adonisjs/core/build/services/app.js'
-const Limiter = application.container.resolveBinding('Adonis/Addons/Limiter')
+let limiter: LimiterService
+await app.booted(async () => {
+  limiter = await app.container.make('limiter')
+})
 
-export { Limiter }
+export { limiter as default }

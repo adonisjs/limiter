@@ -8,7 +8,7 @@
  */
 
 import { test } from '@japa/runner'
-import { HttpLimiterConfigBuilder } from '../src/config_builder'
+import { HttpLimiterConfigBuilder } from '../src/config_builder.js'
 
 test.group('Config builder', () => {
   test('create runtime config', ({ assert }) => {

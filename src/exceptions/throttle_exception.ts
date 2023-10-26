@@ -8,23 +8,23 @@
  */
 
 import { Exception } from '@poppinss/utils'
-import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
+import { HttpContext } from '@adonisjs/core/http'
 
-import type { LimiterResponse } from '../contracts'
+import type { LimiterResponse } from '../types/main.js'
 
 /**
  * Exception raised when requests have been exhausted
  * for a given time duration
  */
 export class ThrottleException extends Exception {
-  remaining: number
-  limit: number
-  retryAfter: number // in seconds
+  remaining!: number
+  limit!: number
+  retryAfter!: number // in seconds
 
   headers: { [name: string]: any } = {}
 
   static invoke(limiterResponse: LimiterResponse, status = 429, message = 'Too many requests') {
-    const error = new this(message, status, 'E_TOO_MANY_REQUESTS')
+    const error = new this(message, { status, code: 'E_TOO_MANY_REQUESTS' })
     error.limit = limiterResponse.limit
     error.remaining = limiterResponse.remaining
     error.retryAfter = limiterResponse.retryAfter
@@ -41,7 +41,7 @@ export class ThrottleException extends Exception {
   /**
    * Set the standard HTTP headers
    */
-  protected setHeaders({ response }: HttpContextContract) {
+  protected setHeaders({ response }: HttpContext) {
     for (let header of Object.keys(this.headers)) {
       response.header(header, this.headers[header])
     }
@@ -50,7 +50,7 @@ export class ThrottleException extends Exception {
   /**
    * Respond with JSON message
    */
-  protected respondWithJSON(ctx: HttpContextContract) {
+  protected respondWithJSON(ctx: HttpContext) {
     this.setHeaders(ctx)
     ctx.response
       .status(this.status)
@@ -60,7 +60,7 @@ export class ThrottleException extends Exception {
   /**
    * Respond with text message
    */
-  protected respondWithMessage(ctx: HttpContextContract) {
+  protected respondWithMessage(ctx: HttpContext) {
     this.setHeaders(ctx)
     ctx.response.status(this.status).send(this.message)
   }
@@ -68,7 +68,7 @@ export class ThrottleException extends Exception {
   /**
    * Self handle exception
    */
-  handle(_: this, ctx: HttpContextContract) {
+  handle(_: this, ctx: HttpContext) {
     switch (ctx.request.accepts(['json', 'html'])) {
       case 'json':
         return this.respondWithJSON(ctx)

@@ -7,24 +7,40 @@
  * file that was distributed with this source code.
  */
 
-import { string } from '@poppinss/utils/build/helpers'
+import string from '@poppinss/utils/string'
 import { RateLimiterAbstract } from 'rate-limiter-flexible'
 
-import type { LimiterResponse } from '../contracts'
-import { ThrottleException } from '../exceptions/throttle_exception'
+import type { LimiterStoreContract, LimiterResponse } from './types/main.js'
+import { ThrottleException } from './exceptions/throttle_exception.js'
 
 /**
  * Limiter class exposes the API to get,consume,update
  * and block a certain key
  */
-export class Limiter {
-  constructor(private rateLimiter: RateLimiterAbstract) {}
+export class Limiter implements LimiterStoreContract {
+  #rateLimiter: RateLimiterAbstract
+
+  constructor(rateLimiter: RateLimiterAbstract) {
+    this.#rateLimiter = rateLimiter
+  }
 
   /**
    * Convert milliseconds or time expression to seconds
    */
-  private timeToSeconds(duration: number | string) {
-    return string.toMs(duration) / 1000
+  #timeToSeconds(duration: number | string) {
+    return string.milliseconds.parse(duration) / 1000
+  }
+
+  get requests() {
+    return this.#rateLimiter.points
+  }
+
+  get duration() {
+    return this.#rateLimiter.duration
+  }
+
+  get blockDuration() {
+    return this.#rateLimiter.blockDuration
   }
 
   /**
@@ -33,10 +49,10 @@ export class Limiter {
    */
   async consume(key: string | number): Promise<LimiterResponse> {
     try {
-      const response = await this.rateLimiter.consume(key, 1)
+      const response = await this.#rateLimiter.consume(key, 1)
       return {
         remaining: response.remainingPoints,
-        limit: this.rateLimiter.points,
+        limit: this.#rateLimiter.points,
         consumed: response.consumedPoints,
         retryAfter: response.msBeforeNext,
       }
@@ -44,7 +60,7 @@ export class Limiter {
       if (errorResponse.consumedPoints) {
         throw ThrottleException.invoke({
           remaining: errorResponse.remainingPoints,
-          limit: this.rateLimiter.points,
+          limit: this.#rateLimiter.points,
           consumed: errorResponse.consumedPoints,
           retryAfter: errorResponse.msBeforeNext,
         })
@@ -73,14 +89,14 @@ export class Limiter {
    * key doesn't exists
    */
   async get(key: string | number): Promise<LimiterResponse | null> {
-    const response = await this.rateLimiter.get(key)
+    const response = await this.#rateLimiter.get(key)
     if (!response || Number.isNaN(response.remainingPoints)) {
       return null
     }
 
     return {
       remaining: response.remainingPoints,
-      limit: this.rateLimiter.points,
+      limit: this.#rateLimiter.points,
       consumed: response.consumedPoints,
       retryAfter: response.msBeforeNext,
     }
@@ -92,7 +108,7 @@ export class Limiter {
   async remaining(key: string | number): Promise<number> {
     const response = await this.get(key)
     if (!response) {
-      return this.rateLimiter.points
+      return this.#rateLimiter.points
     }
 
     return response.remaining
@@ -116,7 +132,7 @@ export class Limiter {
    * Delete a given key
    */
   delete(key: string | number) {
-    return this.rateLimiter.delete(key)
+    return this.#rateLimiter.delete(key)
   }
 
   /**
@@ -124,7 +140,7 @@ export class Limiter {
    * be either in milliseconds or a string expression.
    */
   block(key: string | number, duration: string | number) {
-    return this.rateLimiter.block(key, this.timeToSeconds(duration))
+    return this.#rateLimiter.block(key, this.#timeToSeconds(duration))
   }
 
   /**
@@ -135,6 +151,6 @@ export class Limiter {
    * or a string expression.
    */
   set(key: string | number, requests: number, duration: string | number) {
-    return this.rateLimiter.set(key, requests, this.timeToSeconds(duration))
+    return this.#rateLimiter.set(key, requests, this.#timeToSeconds(duration))
   }
 }

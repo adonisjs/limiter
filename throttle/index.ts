@@ -7,18 +7,18 @@
  * file that was distributed with this source code.
  */
 
-import { inject } from '@adonisjs/core/build/standalone'
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
+import { inject } from '@adonisjs/core'
+import { HttpContext } from '@adonisjs/http-server'
 
-import type { LimiterManager } from '../src/limiter_manager'
-import type { HttpLimiterConfigBuilder } from '../src/config_builder'
-import { ThrottleException } from '../src/exceptions/throttle_exception'
-import type { LimiterResponse, LimitExceededCallback, RuntimeConfig } from '../src/contracts'
+import type { LimiterManager } from '../src/limiter_manager.js'
+import type { HttpLimiterConfigBuilder } from '../src/config_builder.js'
+import { ThrottleException } from '../src/exceptions/throttle_exception.js'
+import type { LimiterResponse, LimitExceededCallback, RuntimeConfig } from '../src/types/main.js'
 
 /**
  * Throttle middleware
  */
-@inject(['Adonis/Addons/Limiter'])
+@inject()
 export default class ThrottleMiddleware {
   constructor(private limiter: LimiterManager<any, any>) {}
 
@@ -46,7 +46,7 @@ export default class ThrottleMiddleware {
    */
   private async rateLimitRequest(
     httpLimiter: string,
-    { request, response }: HttpContextContract,
+    { request, response }: HttpContext,
     configBuilder: HttpLimiterConfigBuilder<any>
   ) {
     const { config, store, key, limitedExceededCallback } = configBuilder.toJSON()
@@ -81,7 +81,7 @@ export default class ThrottleMiddleware {
   /**
    * Middleware handler for throttling HTTP requests
    */
-  async handle(ctx: HttpContextContract, next: () => Promise<any>, httpLimiter: string) {
+  async handle(ctx: HttpContext, next: () => Promise<any>, httpLimiter: string) {
     const configFactory = this.limiter.httpLimiters[httpLimiter]
 
     /**

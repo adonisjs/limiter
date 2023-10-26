@@ -7,10 +7,43 @@
  * file that was distributed with this source code.
  */
 
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
+import type { HttpContext } from '@adonisjs/core/http'
 
-import type { HttpLimiterConfigBuilder } from '../config_builder'
-import type { ThrottleException } from '../exceptions/throttle_exception'
+import type { HttpLimiterConfigBuilder } from '../config_builder.js'
+import type { ThrottleException } from '../exceptions/throttle_exception.js'
+import { LimiterManager } from '../limiter_manager.js'
+import { RateLimiterRes } from 'rate-limiter-flexible'
+
+export interface LimiterStores {}
+export interface HttpLimiters {}
+
+export interface LimiterService extends LimiterManager<any, any> {}
+
+export type LimiterStoreFactory = (config?: RuntimeConfig) => LimiterStoreContract
+
+export interface LimiterStoreContract {
+  requests: number
+
+  duration: number
+
+  blockDuration: number
+
+  consume(key: string | number): Promise<LimiterResponse>
+
+  increment(key: string | number): Promise<void>
+
+  get(key: string | number): Promise<LimiterResponse | null>
+
+  remaining(key: string | number): Promise<number>
+
+  isBlocked(key: string | number): Promise<boolean>
+
+  delete(key: string | number): Promise<boolean>
+
+  block(key: string | number, duration: string | number): Promise<RateLimiterRes>
+
+  set(key: string | number, requests: number, duration: string | number): Promise<RateLimiterRes>
+}
 
 /**
  * Base configuration accepted by all the
@@ -69,9 +102,8 @@ export type StoresConfig = Record<
 /**
  * The config defined by the end user
  */
-export type LimiterConfig<Stores extends StoresConfig> = {
-  default: keyof Stores
-  stores: Stores
+export type LimiterConfig = {
+  enabled: boolean
 }
 
 /**
@@ -103,7 +135,7 @@ export type LimitExceededCallback = (error: ThrottleException) => void
  * Factory function to compute HTTP limiter config
  */
 export type HttpLimiterFactory<Stores> = (
-  ctx: HttpContextContract
+  ctx: HttpContext
 ) =>
   | HttpLimiterConfigBuilder<Stores>
   | Promise<HttpLimiterConfigBuilder<Stores>>
