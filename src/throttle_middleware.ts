@@ -7,32 +7,35 @@
  * file that was distributed with this source code.
  */
 
-import { inject } from '@adonisjs/core'
-import { HttpContext } from '@adonisjs/http-server'
+import type { NextFn } from '@adonisjs/core/types/http'
+import { HttpContext } from '@adonisjs/core/http'
 
-import type { LimiterManager } from '../src/limiter_manager.js'
-import type { HttpLimiterConfigBuilder } from '../src/config_builder.js'
-import { ThrottleException } from '../src/exceptions/throttle_exception.js'
-import type { LimiterResponse, LimitExceededCallback, RuntimeConfig } from '../src/types.js'
+import type { LimiterManager } from './limiter_manager.js'
+import type { HttpLimiterConfigBuilder } from './config_builder.js'
+import { ThrottleException } from './exceptions/throttle_exception.js'
+import type { LimiterResponse, LimitExceededCallback, RuntimeConfig } from './types.js'
+import { InvalidHttpLimiterException } from './exceptions/invalid_http_limiter.js'
 
 /**
  * Throttle middleware
  */
-@inject()
 export default class ThrottleMiddleware {
-  constructor(private limiter: LimiterManager<any, any>) {}
+  #limiter: LimiterManager<any, any>
+  constructor(limiter: LimiterManager<any, any>) {
+    this.#limiter = limiter
+  }
 
   /**
    * Creates a limiter for the given store and config
    */
-  private getLimiter(config: RuntimeConfig, store?: string) {
-    return store ? this.limiter.use(store, config) : this.limiter.use(config)
+  #getLimiter(config: RuntimeConfig, store?: string) {
+    return store ? this.#limiter.use(store, config) : this.#limiter.use(config)
   }
 
   /**
    * Abort request
    */
-  private abort(limiterResponse: LimiterResponse, limitedExceededCallback?: LimitExceededCallback) {
+  #abort(limiterResponse: LimiterResponse, limitedExceededCallback?: LimitExceededCallback) {
     const error = ThrottleException.invoke(limiterResponse)
     if (limitedExceededCallback) {
       limitedExceededCallback(error)
@@ -44,14 +47,14 @@ export default class ThrottleMiddleware {
   /**
    * Rate limit request using a specific limiter
    */
-  private async rateLimitRequest(
+  async #rateLimitRequest(
     httpLimiter: string,
     { request, response }: HttpContext,
     configBuilder: HttpLimiterConfigBuilder<any>
   ) {
     const { config, store, key, limitedExceededCallback } = configBuilder.toJSON()
     const throttleKey = `${httpLimiter}_${key || request.ip()}`
-    const limiter = this.getLimiter(config, store as string | undefined)
+    const limiter = this.#getLimiter(config, store as string | undefined)
 
     const limiterResponse = await limiter.get(throttleKey)
 
@@ -59,7 +62,7 @@ export default class ThrottleMiddleware {
      * Abort when user has exhausted all the requests
      */
     if (limiterResponse && limiterResponse.remaining < 0) {
-      this.abort(limiterResponse, limitedExceededCallback)
+      this.#abort(limiterResponse, limitedExceededCallback)
     }
 
     /**
@@ -81,14 +84,14 @@ export default class ThrottleMiddleware {
   /**
    * Middleware handler for throttling HTTP requests
    */
-  async handle(ctx: HttpContext, next: () => Promise<any>, httpLimiter: string) {
-    const configFactory = this.limiter.httpLimiters[httpLimiter]
+  async handle(ctx: HttpContext, next: NextFn, httpLimiter: string) {
+    const configFactory = this.#limiter.httpLimiters[httpLimiter]
 
     /**
      * Make sure the limiter factory was registered in first place
      */
     if (!configFactory) {
-      throw new Error(`Invalid limiter "${httpLimiter}" applied on "${ctx.route!.pattern}" route`)
+      throw InvalidHttpLimiterException.invoke(httpLimiter, ctx.route?.pattern!)
     }
 
     const configBuilder = await configFactory(ctx)
@@ -102,7 +105,7 @@ export default class ThrottleMiddleware {
       return next()
     }
 
-    await this.rateLimitRequest(httpLimiter, ctx, configBuilder)
+    await this.#rateLimitRequest(httpLimiter, ctx, configBuilder)
     return next()
   }
 }

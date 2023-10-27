@@ -13,6 +13,7 @@
 import { ApplicationService } from '@adonisjs/core/types'
 import { LimiterService } from '../src/types.js'
 import { LimiterManager } from '../src/limiter_manager.js'
+import ThrottleMiddleware from '../src/throttle_middleware.js'
 import { configProvider } from '@adonisjs/core'
 import { RuntimeException } from '@poppinss/utils'
 
@@ -46,9 +47,20 @@ export default class LimiterProvider {
   }
 
   /**
+   * Register throttle middleware
+   */
+  #registerThrottleMiddleware() {
+    this.app.container.singleton(ThrottleMiddleware, async (resolver) => {
+      const manager = await resolver.make('limiter')
+      return new ThrottleMiddleware(manager)
+    })
+  }
+
+  /**
    * Register bindings
    */
   register() {
     this.#registerLimiterManager()
+    this.#registerThrottleMiddleware()
   }
 }
