@@ -133,7 +133,7 @@ test.group('Limiter manager', (group) => {
       },
     }).resolver(app)
 
-    const manager = new LimiterManager(config as any, {})
+    const manager = new LimiterManager(config, {})
     const limiter = manager.use({ duration: '1 sec', requests: 5 })
     await limiter.consume('user_id_1')
 
@@ -158,7 +158,7 @@ test.group('Limiter manager', (group) => {
       },
     }).resolver(app)
 
-    const manager = new LimiterManager(config as any, {})
+    const manager = new LimiterManager(config, {})
     const limiter = manager.use({ duration: '1 sec', requests: 5 })
     await limiter.consume('user_id_1')
 
@@ -183,7 +183,7 @@ test.group('Limiter manager', (group) => {
       },
     }).resolver(app)
 
-    const manager = new LimiterManager(config as any, {})
+    const manager = new LimiterManager(config, {})
     const limiter = manager.use({ duration: '1 sec', requests: 5 })
     await limiter.consume('user_id_1')
 
@@ -207,7 +207,7 @@ test.group('Limiter manager', (group) => {
         }),
       },
     }).resolver(app)
-    const manager = new LimiterManager(config as any, {})
+    const manager = new LimiterManager(config, {})
 
     assert.throws(
       () => manager.use('redis' as any, { duration: '1 sec', requests: 5 }),
@@ -254,7 +254,7 @@ test.group('Limiter manager', (group) => {
       },
     }).resolver(app)
 
-    const manager = new LimiterManager(config as any, {})
+    const manager = new LimiterManager(config, {})
 
     const limiter = manager.use({ duration: '1 sec', requests: 5 })
     Object.defineProperty(limiter, 'foo', { value: 'bar' })
@@ -275,7 +275,7 @@ test.group('Limiter manager', (group) => {
       },
     }).resolver(app)
 
-    const manager = new LimiterManager(config as any, {})
+    const manager = new LimiterManager(config, {})
 
     const { httpLimiters } = manager
       .define('main', () => {

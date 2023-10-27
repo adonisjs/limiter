@@ -62,6 +62,7 @@ test.group('Define config', () => {
     assert.snapshot(config).matchInline(`
         {
           "default": "redis",
+          "enabled": true,
           "stores": {
             "redis": [Function],
           },
@@ -115,6 +116,7 @@ test.group('Define config', () => {
     assert.snapshot(config).matchInline(`
     {
       "default": "db",
+      "enabled": true,
       "stores": {
         "db": [Function],
       },
