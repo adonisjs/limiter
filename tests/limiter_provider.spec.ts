@@ -11,6 +11,7 @@ import { test } from '@japa/runner'
 import { IgnitorFactory } from '@adonisjs/core/factories'
 import { defineConfig } from '../src/define_config.js'
 import { LimiterManager } from '../src/limiter_manager.js'
+import ThrottleMiddleware from '../src/throttle_middleware.js'
 
 const BASE_URL = new URL('./tmp/', import.meta.url)
 const IMPORTER = (filePath: string) => {
@@ -76,5 +77,35 @@ test.group('Limiter Provider', () => {
         'Invalid "config/limiter.ts" file. Make sure you are using the "defineConfig" method'
       )
     }
+  })
+})
+
+test.group('Throttle middleware Provider', () => {
+  test('register middleware provider', async ({ assert }) => {
+    const ignitor = new IgnitorFactory()
+      .merge({
+        rcFileContents: {
+          providers: ['../../providers/limiter_provider.js'],
+        },
+      })
+      .withCoreConfig()
+      .withCoreProviders()
+      .merge({
+        config: {
+          limiter: defineConfig({
+            default: 'redis',
+            stores: {},
+          } as any),
+        },
+      })
+      .create(BASE_URL, {
+        importer: IMPORTER,
+      })
+
+    const app = ignitor.createApp('web')
+    await app.init()
+    await app.boot()
+
+    assert.instanceOf(await app.container.make(ThrottleMiddleware), ThrottleMiddleware)
   })
 })
