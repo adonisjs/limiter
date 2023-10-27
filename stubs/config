@@ -1,0 +1,24 @@
+{{{
+  exports({ to: app.configPath('limiter.ts') })
+}}}
+import { defineConfig, stores } from '@adonisjs/limiter'
+
+export default defineConfig({
+  enabled: true,
+
+  /**
+   * The default store for persisting rate limiter data
+   */
+  default: 'redis',
+
+  /**
+   * List of configured stores. Refer documentation to see
+   * list of available stores and their config.
+   */
+  stores: {
+    redis: stores.redis({
+      client: 'redis',
+      connectionName: 'local',
+    }),
+  },
+})
