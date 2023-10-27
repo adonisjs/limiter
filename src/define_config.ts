@@ -5,6 +5,7 @@ import type {
   RedisLimiterConfig,
   DatabaseLimiterConfig,
   LimiterStoreFactory,
+  LimiterConfig,
 } from './types/main.js'
 
 import { configProvider } from '@adonisjs/core'
@@ -18,15 +19,22 @@ import { timeToSeconds } from './helpers.js'
 import { InvalidArgumentsException } from '@poppinss/utils'
 import { InvalidClientException } from './exceptions/invalid_client_exception.js'
 
+type ResolvedConfig<KnownStores extends Record<string, LimiterStoreFactory>> = LimiterConfig & {
+  default: keyof KnownStores
+  stores: KnownStores
+}
+
 /**
- * Helper to normalize session config
+ * Helper to normalize limiter config
  */
 export function defineConfig<
   KnownStores extends Record<string, LimiterStoreFactory | ConfigProvider<LimiterStoreFactory>>,
->(config: {
-  default: keyof KnownStores
-  stores: KnownStores
-}): ConfigProvider<
+>(
+  config: Partial<LimiterConfig> & {
+    default: keyof KnownStores
+    stores: KnownStores
+  }
+): ConfigProvider<
   ResolvedConfig<{
     [K in keyof KnownStores]: LimiterStoreFactory
   }>
@@ -38,8 +46,17 @@ export function defineConfig<
     throw new InvalidArgumentsException('Missing "default" property inside the limiter config')
   }
 
+  /**
+   * Destructuring config with the default values. We pull out
+   * stores, since we have to transform them in the output value.
+   */
+  const { stores, ...rest } = {
+    enabled: true,
+    ...config,
+  }
+
   return configProvider.create(async (app) => {
-    const storeNames = Object.keys(config.stores)
+    const storeNames = Object.keys(stores)
     const storesList = {} as Record<string, LimiterStoreFactory>
 
     for (let storeName of storeNames) {
@@ -52,7 +69,7 @@ export function defineConfig<
     }
 
     return {
-      default: config.default,
+      ...rest,
       stores: storesList as { [K in keyof KnownStores]: LimiterStoreFactory },
     }
   })
@@ -119,9 +136,4 @@ export const stores: {
       }
     })
   },
-}
-
-type ResolvedConfig<KnownStores extends Record<string, LimiterStoreFactory>> = {
-  default: keyof KnownStores
-  stores: KnownStores
 }
