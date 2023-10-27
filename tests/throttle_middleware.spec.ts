@@ -174,47 +174,4 @@ test.group('Throttle middleware', (group) => {
     const { text } = await supertest(server).get('/')
     assert.deepEqual(text, 'Too many requests')
   })
-
-  test('throw when request limit exceeded', async ({ assert }) => {
-    const server = createServer(async (req, res) => {
-      const request = new RequestFactory().merge({ req, res, encryption }).create()
-      const response = new ResponseFactory().merge({ req, res, encryption }).create()
-      const ctx = new HttpContextFactory().merge({ request, response }).create()
-
-      const config = await defineConfig({
-        default: 'redis',
-        stores: {
-          redis: stores.redis({
-            client: 'redis',
-            connectionName: 'main',
-          }),
-        },
-      }).resolver(app)
-
-      const manager = new LimiterManager(config, {})
-
-      manager.define('main', (_ctx) => {
-        return manager.allowRequests(1).every('10 mins')
-      })
-
-      const middleware = new ThrottleMiddleware(manager)
-      try {
-        await middleware.handle(
-          ctx,
-          async () => {
-            res.writeHead(200)
-            res.end('ok')
-          },
-          'main'
-        )
-      } catch (error) {
-        res.writeHead(error.status)
-        res.end(error.message)
-      }
-    })
-
-    await supertest(server).get('/')
-    const { text } = await supertest(server).get('/')
-    assert.deepEqual(text, 'Too many requests')
-  })
 })
