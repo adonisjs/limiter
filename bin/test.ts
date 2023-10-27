@@ -1,5 +1,5 @@
 /*
- * @adonisjs/mail
+ * @adonisjs/limiter
  *
  * (c) AdonisJS
  *

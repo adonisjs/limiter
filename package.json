@@ -18,12 +18,10 @@
   ],
   "exports": {
     ".": "./build/index.js",
-    "./commands": "./build/commands/main.js",
-    "./commands/*": "./build/commands/*.js",
-    "./mail_provider": "./build/providers/mail_provider.js",
+    "./limiter_provider": "./build/providers/limiter_provider.js",
     "./services/main": "./build/services/main.js",
-    "./factories": "./build/factories/main.js",
-    "./types": "./build/src/types/main.js"
+    "./throttle_middleware": "./build/src/throttle_middleware.js",
+    "./types": "./build/src/types.js"
   },
   "scripts": {
     "test": "c8 npm run quick:test",
@@ -34,13 +32,13 @@
     "build": "npm run compile",
     "release": "np --message=\"chore(release): %s\"",
     "version": "npm run build",
-    "sync-labels": "github-label-sync --labels .github/labels.json adonisjs/mail",
+    "sync-labels": "github-label-sync --labels .github/labels.json adonisjs/limiter",
     "quick:test": "node --enable-source-maps --loader=ts-node/esm bin/test.ts",
     "format": "prettier --write .",
-    "typecheck": "tsc --noEmit",
-    "index:commands": "adonis-kit index build/commands"
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@adonisjs/assembler": "^6.1.3-25",
     "@adonisjs/core": "^6.1.5-7",
     "@adonisjs/eslint-config": "^1.1.8",
     "@adonisjs/lucid": "^19.0.0-3",
