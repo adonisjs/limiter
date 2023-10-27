@@ -16,7 +16,7 @@ import type {
   HttpLimiterFactory,
   LimiterStoreFactory,
   LimiterStoreContract,
-} from './types/main.js'
+} from './types.js'
 import { UnrecognizedStoreException } from './exceptions/unrecognized_store_exception.js'
 
 /**

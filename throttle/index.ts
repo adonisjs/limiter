@@ -13,7 +13,7 @@ import { HttpContext } from '@adonisjs/http-server'
 import type { LimiterManager } from '../src/limiter_manager.js'
 import type { HttpLimiterConfigBuilder } from '../src/config_builder.js'
 import { ThrottleException } from '../src/exceptions/throttle_exception.js'
-import type { LimiterResponse, LimitExceededCallback, RuntimeConfig } from '../src/types/main.js'
+import type { LimiterResponse, LimitExceededCallback, RuntimeConfig } from '../src/types.js'
 
 /**
  * Throttle middleware

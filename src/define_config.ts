@@ -6,7 +6,7 @@ import type {
   DatabaseLimiterConfig,
   LimiterStoreFactory,
   LimiterConfig,
-} from './types/main.js'
+} from './types.js'
 
 import { configProvider } from '@adonisjs/core'
 import { ConfigProvider } from '@adonisjs/core/types'

@@ -10,7 +10,7 @@
 import { Exception } from '@poppinss/utils'
 import { HttpContext } from '@adonisjs/core/http'
 
-import type { LimiterResponse } from '../types/main.js'
+import type { LimiterResponse } from '../types.js'
 
 /**
  * Exception raised when requests have been exhausted

@@ -9,9 +9,9 @@
 
 import type { HttpContext } from '@adonisjs/core/http'
 
-import type { HttpLimiterConfigBuilder } from '../config_builder.js'
-import type { ThrottleException } from '../exceptions/throttle_exception.js'
-import { LimiterManager } from '../limiter_manager.js'
+import type { HttpLimiterConfigBuilder } from './config_builder.js'
+import type { ThrottleException } from './exceptions/throttle_exception.js'
+import { LimiterManager } from './limiter_manager.js'
 import { RateLimiterRes } from 'rate-limiter-flexible'
 
 export interface LimiterStores {}

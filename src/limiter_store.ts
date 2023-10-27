@@ -10,7 +10,7 @@
 import string from '@poppinss/utils/string'
 import { RateLimiterAbstract } from 'rate-limiter-flexible'
 
-import type { LimiterStoreContract, LimiterResponse } from './types/main.js'
+import type { LimiterStoreContract, LimiterResponse } from './types.js'
 import { ThrottleException } from './exceptions/throttle_exception.js'
 
 /**
