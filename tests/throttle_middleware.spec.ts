@@ -6,52 +6,19 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
-
-/// <reference types="@adonisjs/redis/redis_provider" />
-
 import supertest from 'supertest'
 import { test } from '@japa/runner'
 import { HttpContextFactory, RequestFactory, ResponseFactory } from '@adonisjs/core/factories/http'
-import { defineConfig as redisConfig } from '@adonisjs/redis'
-import { AppFactory } from '@adonisjs/core/factories/app'
-import { ApplicationService } from '@adonisjs/core/types'
 import { EncryptionFactory } from '@adonisjs/core/factories/encryption'
 import { defineConfig, stores } from '../src/define_config.js'
 import { LimiterManager } from '../src/limiter_manager.js'
 import ThrottleMiddleware from '../src/throttle_middleware.js'
 import { createServer } from 'node:http'
-
-export const BASE_URL = new URL('./tmp/', import.meta.url)
+import { getApp } from '../test_helpers/main.js'
 
 const encryption = new EncryptionFactory().create()
-const app = new AppFactory().create(BASE_URL, () => {}) as ApplicationService
-app.rcContents({
-  providers: [
-    () => import('@adonisjs/core/providers/app_provider'),
-    () => import('@adonisjs/redis/redis_provider'),
-  ],
-})
-app.useConfig({
-  logger: {
-    default: 'main',
-    loggers: {
-      main: {},
-    },
-  },
-  redis: redisConfig({
-    connection: 'main',
-    connections: {
-      main: {
-        host: process.env.REDIS_HOST,
-        port: process.env.REDIS_PORT,
-      },
-    },
-  }),
-})
-
-await app.init()
-await app.boot()
-const redis = await app.container.make('redis')
+const { app, ...services } = await getApp({ withRedis: true })
+const redis = services.redis!
 
 test.group('Throttle middleware', (group) => {
   group.each.setup(async () => {

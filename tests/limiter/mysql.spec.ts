@@ -9,13 +9,16 @@
 
 import { test } from '@japa/runner'
 import { ThrottleException } from '../../src/exceptions/throttle_exception.js'
-import { Limiter } from '../../src/limiter_store.js'
-import { database, getDatabaseRateLimiter, migrate, rollback } from '../../test_helpers/index.js'
+import { getApp, getDatabaseRateLimiter, migrate, rollback } from '../../test_helpers/main.js'
+
+const { app, ...services } = await getApp({ withDb: true })
+const database = services.database!
+const connection = database.connection('mysql')
 
 test.group('Limiter | Mysql', (group) => {
   group.each.setup(async () => {
-    await migrate('mysql')
-    return () => rollback('mysql')
+    await migrate('mysql', database)
+    return () => rollback('mysql', database)
   })
 
   group.teardown(async () => {
@@ -23,7 +26,19 @@ test.group('Limiter | Mysql', (group) => {
   })
 
   test('consume points for a given key', async ({ assert }) => {
-    const limiter = new Limiter(getDatabaseRateLimiter('mysql', 1000 * 10, 5))
+    const limiter = getDatabaseRateLimiter(connection, { duration: 1000 * 10, points: 5 })
+    await limiter.consume('user_id_1')
+    const response = await limiter.get('user_id_1')
+
+    assert.containsSubset(response, {
+      consumed: 1,
+      remaining: 4,
+      limit: 5,
+    })
+  })
+
+  test('consume points for a given key', async ({ assert }) => {
+    const limiter = getDatabaseRateLimiter(connection, { duration: 1000 * 10, points: 5 })
     await limiter.consume('user_id_1')
     const response = await limiter.get('user_id_1')
 
@@ -37,7 +52,7 @@ test.group('Limiter | Mysql', (group) => {
   test('fail when enable to consume', async ({ assert }) => {
     assert.plan(2)
 
-    const limiter = new Limiter(getDatabaseRateLimiter('mysql', 1000 * 10, 1))
+    const limiter = getDatabaseRateLimiter(connection, { duration: 1000 * 10, points: 1 })
     await limiter.consume('user_id_1')
 
     try {
@@ -54,7 +69,7 @@ test.group('Limiter | Mysql', (group) => {
   test('fail when trying to consume points on a blocked key', async ({ assert }) => {
     assert.plan(2)
 
-    const limiter = new Limiter(getDatabaseRateLimiter('mysql', 1000 * 10, 1))
+    const limiter = getDatabaseRateLimiter(connection, { duration: 1000 * 10, points: 1 })
     await limiter.block('user_id_1', 1000 * 10)
 
     try {
@@ -69,7 +84,7 @@ test.group('Limiter | Mysql', (group) => {
   })
 
   test('set requests consumed for a given key', async ({ assert }) => {
-    const limiter = new Limiter(getDatabaseRateLimiter('mysql', 1000 * 10, 5))
+    const limiter = getDatabaseRateLimiter(connection, { duration: 1000 * 10, points: 5 })
     await limiter.set('user_id_1', 10, 1000 * 10)
 
     const response = await limiter.get('user_id_1')
@@ -81,7 +96,7 @@ test.group('Limiter | Mysql', (group) => {
   })
 
   test('delete key', async ({ assert }) => {
-    const limiter = new Limiter(getDatabaseRateLimiter('mysql', 1000 * 10, 5))
+    const limiter = getDatabaseRateLimiter(connection, { duration: 1000 * 10, points: 5 })
     await limiter.set('user_id_1', 10, 1000 * 10)
     await limiter.delete('user_id_1')
 
@@ -94,7 +109,11 @@ test.group('Limiter | Mysql', (group) => {
   }) => {
     assert.plan(3)
 
-    const limiter = new Limiter(getDatabaseRateLimiter('mysql', 1000 * 10, 1, 1000 * 60))
+    const limiter = getDatabaseRateLimiter(connection, {
+      duration: 1000 * 10,
+      points: 1,
+      blockDuration: 1000 * 60,
+    })
     await limiter.consume('user_id_1')
 
     try {

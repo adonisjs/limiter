@@ -10,45 +10,20 @@
 import { test } from '@japa/runner'
 import { AppFactory } from '@adonisjs/core/factories/app'
 import type { ApplicationService } from '@adonisjs/core/types'
-
-import { Limiter } from '../src/limiter_store.js'
 import { defineConfig, stores } from '../src/define_config.js'
-import { defineConfig as redisConfig } from '@adonisjs/redis'
-import { defineConfig as dbConfig } from '@adonisjs/lucid'
-
-const BASE_URL = new URL('./', import.meta.url)
-const app = new AppFactory().create(BASE_URL, () => {}) as ApplicationService
+import RedisLimiterStore from '../src/stores/redis.js'
+import DatabaseLimiterStore from '../src/stores/database.js'
+import { BASE_URL, getApp } from '../test_helpers/main.js'
+import { defineConfig as databaseConfig } from '@adonisjs/lucid'
 
 test.group('Define config', () => {
   test('throw error when default store is not provided', async () => {
+    const app = new AppFactory().create(BASE_URL, () => {}) as ApplicationService
     await defineConfig({} as any).resolver(app)
   }).throws('Missing "default" property inside the limiter config')
 
   test('transform config with redis store', async ({ assert }) => {
-    const appForRedis = new AppFactory().create(BASE_URL, () => {}) as ApplicationService
-    appForRedis.rcContents({
-      providers: [
-        () => import('@adonisjs/core/providers/app_provider'),
-        () => import('@adonisjs/redis/redis_provider'),
-      ],
-    })
-    appForRedis.useConfig({
-      logger: {
-        default: 'main',
-        loggers: {
-          main: {},
-        },
-      },
-      redis: redisConfig({
-        connection: 'main',
-        connections: {
-          main: {},
-        },
-      }),
-    })
-    await appForRedis.init()
-    await appForRedis.boot()
-
+    const { app } = await getApp({ withRedis: true })
     const config = await defineConfig({
       default: 'redis',
       stores: {
@@ -57,61 +32,36 @@ test.group('Define config', () => {
           connectionName: 'main',
         }),
       },
-    }).resolver(appForRedis)
+    }).resolver(app)
 
     assert.snapshot(config).matchInline(`
         {
           "default": "redis",
           "enabled": true,
           "stores": {
+            "memory": [Function],
             "redis": [Function],
           },
         }
       `)
 
-    assert.instanceOf(config.stores.redis(), Limiter)
+    assert.instanceOf(config.stores.redis(), RedisLimiterStore)
   })
 
   test('transform config with db store', async ({ assert }) => {
-    const appForDb = new AppFactory().create(BASE_URL, () => {}) as ApplicationService
-    appForDb.rcContents({
-      providers: [
-        () => import('@adonisjs/core/providers/app_provider'),
-        () => import('@adonisjs/lucid/database_provider'),
-      ],
-    })
-
-    appForDb.useConfig({
-      logger: {
-        default: 'main',
-        loggers: {
-          main: {},
-        },
-      },
-      database: dbConfig({
-        connection: 'main',
-        connections: {
-          main: {
-            client: 'pg',
-            connection: {},
-          },
-        },
-      }),
-    })
-    await appForDb.init()
-    await appForDb.boot()
+    const { app } = await getApp({ withDb: true })
 
     const config = await defineConfig({
       default: 'db',
       stores: {
         db: stores.db({
           client: 'db',
-          connectionName: 'main',
+          connectionName: 'pg',
           dbName: '',
           tableName: '',
         }),
       },
-    }).resolver(appForDb)
+    }).resolver(app)
 
     assert.snapshot(config).matchInline(`
     {
@@ -119,10 +69,11 @@ test.group('Define config', () => {
       "enabled": true,
       "stores": {
         "db": [Function],
+        "memory": [Function],
       },
     }
     `)
-    assert.instanceOf(config.stores.db(), Limiter)
+    assert.instanceOf(config.stores.db(), DatabaseLimiterStore)
   })
 
   test('throw on unsupported db dialect', async ({ assert }) => {
@@ -141,7 +92,7 @@ test.group('Define config', () => {
           main: {},
         },
       },
-      database: dbConfig({
+      database: databaseConfig({
         connection: 'main',
         connections: {
           main: {
@@ -173,30 +124,36 @@ test.group('Define config', () => {
     )
   })
 
-  test('set runtime config values from factory', async ({ assert }) => {
-    const appForRedis = new AppFactory().create(BASE_URL, () => {}) as ApplicationService
-    appForRedis.rcContents({
-      providers: [
-        () => import('@adonisjs/core/providers/app_provider'),
-        () => import('@adonisjs/redis/redis_provider'),
-      ],
-    })
-    appForRedis.useConfig({
-      logger: {
-        default: 'main',
-        loggers: {
-          main: {},
-        },
+  test('raise exception when store client is invalid', async ({ assert }) => {
+    assert.plan(2)
+    const { app } = await getApp({ withDb: true, withRedis: true })
+    const database = await defineConfig({
+      default: 'db',
+      stores: {
+        db: stores.db({
+          client: 'mongo' as any,
+          connectionName: 'pg',
+          dbName: '',
+          tableName: '',
+        }),
       },
-      redis: redisConfig({
-        connection: 'main',
-        connections: {
-          main: {},
-        },
-      }),
-    })
-    await appForRedis.init()
-    await appForRedis.boot()
+    }).resolver(app)
+    const redis = await defineConfig({
+      default: 'redis',
+      stores: {
+        redis: stores.redis({
+          client: 'memcached' as any,
+          connectionName: 'main',
+        }),
+      },
+    }).resolver(app)
+
+    assert.throws(() => database.stores.db(), 'Invalid limiter client "mongo"')
+    assert.throws(() => redis.stores.redis(), 'Invalid limiter client "memcached"')
+  })
+
+  test('set runtime config values from factory', async ({ assert }) => {
+    const { app } = await getApp({ withRedis: true })
 
     const config = await defineConfig({
       default: 'redis',
@@ -206,7 +163,7 @@ test.group('Define config', () => {
           connectionName: 'main',
         }),
       },
-    }).resolver(appForRedis)
+    }).resolver(app)
 
     const { requests, duration, blockDuration } = config.stores.redis({
       requests: 10,
