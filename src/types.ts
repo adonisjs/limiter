@@ -50,10 +50,15 @@ export interface LimiterStoreContract {
  * limiters
  */
 export type BaseLimiterConfig = {
-  keyPrefix?: string
   clusterTimeout?: string | number
   inmemoryBlockOnConsumed?: string | number
   inmemoryBlockDuration?: string | number
+  keyPrefix?: string
+}
+
+export type MemoryLimiterConfig = {
+  client: 'memory'
+  keyPrefix?: string
 }
 
 /**
