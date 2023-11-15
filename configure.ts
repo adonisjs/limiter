@@ -16,14 +16,31 @@ export async function configure(command: Configure) {
   /**
    * Publish config file
    */
-  await command.publishStub('config.stub')
+  await command.publishStub('config/limiter.stub')
+
+  /**
+   * Publish start file
+   */
+  await command.publishStub('start/limiter.stub')
 
   const codemods = await command.createCodemods()
 
   /**
-   * Register provider
+   * Register provider and preload file
    */
   await codemods.updateRcFile((rcFile) => {
     rcFile.addProvider('@adonisjs/limiter/limiter_provider')
+    rcFile.addPreloadFile('#start/limiter')
   })
+
+  /**
+   * Register throttle middleware
+   */
+  await codemods.registerMiddleware('named', [
+    {
+      name: 'throttle',
+      path: '@adonisjs/limiter/throttle_middleware',
+      position: 'after',
+    },
+  ])
 }
