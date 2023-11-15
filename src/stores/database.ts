@@ -1,10 +1,21 @@
-import { QueryClientContract } from '@adonisjs/lucid/types/database'
-import { InvalidClientException } from '../exceptions/invalid_client_exception.js'
-import { DatabaseLimiterConfig, RuntimeConfig } from '../types.js'
+/*
+ * @adonisjs/limiter
+ *
+ * (c) AdonisJS
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+import { RateLimiterMySQL, RateLimiterPostgres } from 'rate-limiter-flexible'
+
 import BaseLimiterStore from './base.js'
 import { timeToSeconds } from '../helpers.js'
-import { RateLimiterMySQL, RateLimiterPostgres } from 'rate-limiter-flexible'
+import { InvalidClientException } from '../exceptions/invalid_client_exception.js'
 import { UnsupportedDbException } from '../exceptions/unsupported_db_exception.js'
+
+import type { QueryClientContract } from '@adonisjs/lucid/types/database'
+import type { DatabaseLimiterConfig, RuntimeConfig } from '../types.js'
 
 export default class DatabaseLimiterStore extends BaseLimiterStore {
   constructor(
@@ -47,8 +58,8 @@ export default class DatabaseLimiterStore extends BaseLimiterStore {
       keyPrefix: config.keyPrefix,
       storeClient: connection.getWriteClient(),
       clearExpiredByTimeout: config.clearExpiredByTimeout,
-      inMemoryBlockOnConsumed: timeToSeconds(config.inmemoryBlockOnConsumed),
-      inMemoryBlockDuration: timeToSeconds(config.inmemoryBlockDuration),
+      inMemoryBlockOnConsumed: timeToSeconds(config.inMemoryBlockOnConsumed),
+      inMemoryBlockDuration: timeToSeconds(config.inMemoryBlockDuration),
       ...(runtimeConfig && {
         points: runtimeConfig.requests,
         duration: timeToSeconds(runtimeConfig.duration),

@@ -105,8 +105,8 @@ export type LimiterConfig = {
  */
 export type BaseLimiterConfig = {
   clusterTimeout?: string | number
-  inmemoryBlockOnConsumed?: string | number
-  inmemoryBlockDuration?: string | number
+  inMemoryBlockOnConsumed?: string | number
+  inMemoryBlockDuration?: string | number
   keyPrefix?: string
 }
 
