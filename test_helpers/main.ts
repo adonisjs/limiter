@@ -1,13 +1,24 @@
+/*
+ * @adonisjs/limiter
+ *
+ * (c) AdonisJS
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 import { AppFactory } from '@adonisjs/core/factories/app'
-import type { ApplicationService } from '@adonisjs/core/types'
-import type { Database } from '@adonisjs/lucid/database'
-import type { Connection, RedisService } from '@adonisjs/redis/types'
 import { defineConfig as redisConfig } from '@adonisjs/redis'
 import { defineConfig as databaseConfig } from '@adonisjs/lucid'
-import { QueryClientContract } from '@adonisjs/lucid/types/database'
+
 import DatabaseLimiterStore from '../src/stores/database.js'
 import RedisLimiterStore from '../src/stores/redis.js'
 import MemoryLimiterStore from '../src/stores/memory.js'
+
+import type { ApplicationService } from '@adonisjs/core/types'
+import type { Database } from '@adonisjs/lucid/database'
+import type { QueryClientContract } from '@adonisjs/lucid/types/database'
+import type { Connection, RedisService } from '@adonisjs/redis/types'
 
 import 'dotenv/config'
 

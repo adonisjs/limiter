@@ -7,7 +7,7 @@
  * file that was distributed with this source code.
  */
 
-import { RuntimeConfig, LimitExceededCallback } from './types.js'
+import type { RuntimeConfig, LimitExceededCallback } from './types.js'
 
 /**
  * Config builder for HTTP rate limiters

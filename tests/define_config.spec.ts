@@ -1,5 +1,5 @@
 /*
- * @adonisjs/redis
+ * @adonisjs/limiter
  *
  * (c) AdonisJS
  *
@@ -9,12 +9,14 @@
 
 import { test } from '@japa/runner'
 import { AppFactory } from '@adonisjs/core/factories/app'
-import type { ApplicationService } from '@adonisjs/core/types'
+import { defineConfig as databaseConfig } from '@adonisjs/lucid'
+
+import { BASE_URL, getApp } from '../test_helpers/main.js'
 import { defineConfig, stores } from '../src/define_config.js'
 import RedisLimiterStore from '../src/stores/redis.js'
 import DatabaseLimiterStore from '../src/stores/database.js'
-import { BASE_URL, getApp } from '../test_helpers/main.js'
-import { defineConfig as databaseConfig } from '@adonisjs/lucid'
+
+import type { ApplicationService } from '@adonisjs/core/types'
 
 test.group('Define config', () => {
   test('throw error when default store is not provided', async () => {

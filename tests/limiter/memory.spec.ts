@@ -1,15 +1,16 @@
 /*
- * @adonisjs/framework
+ * @adonisjs/limiter
  *
- * (c) Harminder Virk
+ * (c) AdonisJS
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
 
 import { test } from '@japa/runner'
-import { ThrottleException } from '../../src/exceptions/throttle_exception.js'
+
 import { getMemoryLimiter } from '../../test_helpers/main.js'
+import { ThrottleException } from '../../src/exceptions/throttle_exception.js'
 
 test.group('Limiter | memory', () => {
   test('consume requests for a given key', async ({ assert }) => {

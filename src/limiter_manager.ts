@@ -8,7 +8,9 @@
  */
 
 import string from '@poppinss/utils/string'
+
 import { HttpLimiterConfigBuilder } from './config_builder.js'
+import { UnrecognizedStoreException } from './exceptions/unrecognized_store_exception.js'
 
 import type {
   RuntimeConfig,
@@ -17,7 +19,6 @@ import type {
   LimiterStoreFactory,
   LimiterStoreContract,
 } from './types.js'
-import { UnrecognizedStoreException } from './exceptions/unrecognized_store_exception.js'
 
 /**
  * Limiter manager exposes the API to create and cache instances

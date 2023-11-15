@@ -6,15 +6,17 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
-import supertest from 'supertest'
+
 import { test } from '@japa/runner'
+import supertest from 'supertest'
 import { HttpContextFactory, RequestFactory, ResponseFactory } from '@adonisjs/core/factories/http'
 import { EncryptionFactory } from '@adonisjs/core/factories/encryption'
+import { createServer } from 'node:http'
+
+import { getApp } from '../test_helpers/main.js'
 import { defineConfig, stores } from '../src/define_config.js'
 import { LimiterManager } from '../src/limiter_manager.js'
 import ThrottleMiddleware from '../src/throttle_middleware.js'
-import { createServer } from 'node:http'
-import { getApp } from '../test_helpers/main.js'
 
 const encryption = new EncryptionFactory().create()
 const { app, ...services } = await getApp({ withRedis: true })

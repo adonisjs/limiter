@@ -7,14 +7,15 @@
  * file that was distributed with this source code.
  */
 
-import type { NextFn } from '@adonisjs/core/types/http'
 import { HttpContext } from '@adonisjs/core/http'
 
-import type { LimiterManager } from './limiter_manager.js'
-import type { HttpLimiterConfigBuilder } from './config_builder.js'
 import { ThrottleException } from './exceptions/throttle_exception.js'
-import type { LimiterResponse, LimitExceededCallback, RuntimeConfig } from './types.js'
 import { InvalidHttpLimiterException } from './exceptions/invalid_http_limiter.js'
+
+import type { NextFn } from '@adonisjs/core/types/http'
+import type { LimiterResponse, LimitExceededCallback, RuntimeConfig } from './types.js'
+import type { HttpLimiterConfigBuilder } from './config_builder.js'
+import type { LimiterManager } from './limiter_manager.js'
 
 /**
  * Throttle middleware

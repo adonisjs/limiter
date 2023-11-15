@@ -1,3 +1,20 @@
+/*
+ * @adonisjs/limiter
+ *
+ * (c) AdonisJS
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+import { configProvider } from '@adonisjs/core'
+import { InvalidArgumentsException } from '@poppinss/utils'
+
+import DatabaseLimiterStore from './stores/database.js'
+import RedisLimiterStore from './stores/redis.js'
+import MemoryLimiterStore from './stores/memory.js'
+
+import type { ConfigProvider } from '@adonisjs/core/types'
 import type {
   RedisLimiterConfig,
   DatabaseLimiterConfig,
@@ -5,14 +22,6 @@ import type {
   LimiterConfig,
   MemoryLimiterConfig,
 } from './types.js'
-
-import { configProvider } from '@adonisjs/core'
-import { ConfigProvider } from '@adonisjs/core/types'
-
-import { InvalidArgumentsException } from '@poppinss/utils'
-import DatabaseLimiterStore from './stores/database.js'
-import RedisLimiterStore from './stores/redis.js'
-import MemoryLimiterStore from './stores/memory.js'
 
 type ResolvedConfig<KnownStores extends Record<string, LimiterStoreFactory>> = LimiterConfig & {
   default: keyof KnownStores

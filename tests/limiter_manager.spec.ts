@@ -1,15 +1,17 @@
 /*
  * @adonisjs/limiter
  *
- * (c) Harminder Virk
+ * (c) AdonisJS
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
+
 import { test } from '@japa/runner'
+
+import { getApp, migrate, rollback } from '../test_helpers/main.js'
 import { LimiterManager } from '../src/limiter_manager.js'
 import { defineConfig, stores } from '../src/define_config.js'
-import { getApp, migrate, rollback } from '../test_helpers/main.js'
 
 const { app, ...services } = await getApp({ withDb: true, withRedis: true })
 const database = services.database!

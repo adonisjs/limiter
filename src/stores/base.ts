@@ -6,10 +6,13 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
-import string from '@poppinss/utils/string'
+
 import { RateLimiterAbstract } from 'rate-limiter-flexible'
-import { LimiterStoreContract, LimiterResponse } from '../types.js'
+import string from '@poppinss/utils/string'
+
 import { ThrottleException } from '../exceptions/throttle_exception.js'
+
+import type { LimiterStoreContract, LimiterResponse } from '../types.js'
 
 export default abstract class BaseLimiterStore implements LimiterStoreContract {
   #rateLimiter: RateLimiterAbstract

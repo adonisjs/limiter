@@ -10,12 +10,14 @@
 /// <reference types="@adonisjs/lucid/database_provider" />
 /// <reference types="@adonisjs/redis/redis_provider" />
 
-import { ApplicationService } from '@adonisjs/core/types'
-import { LimiterService } from '../src/types.js'
-import { LimiterManager } from '../src/limiter_manager.js'
-import ThrottleMiddleware from '../src/throttle_middleware.js'
 import { configProvider } from '@adonisjs/core'
 import { RuntimeException } from '@poppinss/utils'
+
+import { LimiterManager } from '../src/limiter_manager.js'
+import ThrottleMiddleware from '../src/throttle_middleware.js'
+
+import type { ApplicationService } from '@adonisjs/core/types'
+import type { LimiterService } from '../src/types.js'
 
 declare module '@adonisjs/core/types' {
   export interface ContainerBindings {

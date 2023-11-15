@@ -1,8 +1,9 @@
-import { HttpContextFactory, RequestFactory, ResponseFactory } from '@adonisjs/core/factories/http'
 import { test } from '@japa/runner'
+import { HttpContextFactory, RequestFactory, ResponseFactory } from '@adonisjs/core/factories/http'
 import { createServer } from 'node:http'
-import { ThrottleException } from '../../src/exceptions/throttle_exception.js'
 import supertest from 'supertest'
+
+import { ThrottleException } from '../../src/exceptions/throttle_exception.js'
 
 test.group('Throttle exception', () => {
   test('Handle JSON error', async ({ assert }) => {

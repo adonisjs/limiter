@@ -1,5 +1,5 @@
 /*
- * @adonisjs/redis
+ * @adonisjs/limiter
  *
  * (c) AdonisJS
  *
@@ -9,6 +9,7 @@
 
 import { test } from '@japa/runner'
 import { IgnitorFactory } from '@adonisjs/core/factories'
+
 import { defineConfig } from '../src/define_config.js'
 import { LimiterManager } from '../src/limiter_manager.js'
 import ThrottleMiddleware from '../src/throttle_middleware.js'
