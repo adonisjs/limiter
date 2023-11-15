@@ -6,8 +6,8 @@ jobs:
   linux:
     runs-on: ubuntu-latest
     strategy:
-    matrix:
-      node-version: [18.16.0, 20.x]
+      matrix:
+        node-version: [18.16.0, 20.x]
 
     services:
       postgres:
