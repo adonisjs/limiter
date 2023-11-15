@@ -12,37 +12,91 @@ import type { HttpContext } from '@adonisjs/core/http'
 import type { HttpLimiterConfigBuilder } from './config_builder.js'
 import type { ThrottleException } from './exceptions/throttle_exception.js'
 import { LimiterManager } from './limiter_manager.js'
-import { RateLimiterRes } from 'rate-limiter-flexible'
 
-export interface LimiterStores {}
-export interface HttpLimiters {}
-
-export interface LimiterService extends LimiterManager<any, any> {}
-
-export type LimiterStoreFactory = (config?: RuntimeConfig) => LimiterStoreContract
-
+/**
+ * Limiter stores must implement this contract.
+ */
 export interface LimiterStoreContract {
+  /**
+   * The number of requests to allow in a
+   * specified duration
+   */
   requests: number
 
+  /**
+   * The duration (milliseconds) in which
+   * requests should be checked
+   */
   duration: number
 
+  /**
+   * The duration (milliseconds) to block
+   * requests for once limit is exceeded
+   */
   blockDuration: number
 
+  /**
+   * Consume 1 point for a given key, raises an exception
+   * when requests have been exhausted. You can think of
+   * one request as 1 point.
+   */
   consume(key: string | number): Promise<LimiterResponse>
 
+  /**
+   * Increment the requests count. This method is the same as "consume"
+   * but does not fail when the requests have been exhausted.
+   */
   increment(key: string | number): Promise<void>
 
+  /**
+   * Get limiter details for a given key. Returns null when
+   * key doesn't exist.
+   */
   get(key: string | number): Promise<LimiterResponse | null>
 
+  /**
+   * Find the number of remaining requests for a given key
+   */
   remaining(key: string | number): Promise<number>
 
+  /**
+   * Find if the current key is blocked. This method essentionally
+   * checks if the consumed points are greater than the allowed
+   * limit.
+   */
   isBlocked(key: string | number): Promise<boolean>
 
+  /**
+   * Delete a given key
+   */
   delete(key: string | number): Promise<boolean>
 
-  block(key: string | number, duration: string | number): Promise<RateLimiterRes>
+  /**
+   * Block a given key for a given duration.
+   *
+   * The duration should be either in milliseconds
+   * or a string expression, i.e. "1 hour".
+   */
+  block(key: string | number, duration: string | number): Promise<LimiterResponse>
 
-  set(key: string | number, requests: number, duration: string | number): Promise<RateLimiterRes>
+  /**
+   * Manually set the number of requests exhausted for
+   * a given key for a given time duration.
+   *
+   * The duration should be either in milliseconds
+   * or a string expression, i.e. "1 hour".
+   */
+  set(key: string | number, requests: number, duration: string | number): Promise<LimiterResponse>
+}
+
+/**
+ * Base configuration for managing limiters (without stores)
+ */
+export type LimiterConfig = {
+  /**
+   * enable/disable rate limiter globally
+   */
+  enabled: boolean
 }
 
 /**
@@ -56,6 +110,9 @@ export type BaseLimiterConfig = {
   keyPrefix?: string
 }
 
+/**
+ * In-memory specific config
+ */
 export type MemoryLimiterConfig = {
   client: 'memory'
   keyPrefix?: string
@@ -79,36 +136,6 @@ export type DatabaseLimiterConfig = BaseLimiterConfig & {
   tableName: string
   connectionName: string
   clearExpiredByTimeout?: boolean
-}
-
-/**
- * Limiter backend stores. These can be extended using
- * declaration merging
- */
-export interface LimiterBackendStores {
-  db: {
-    config: DatabaseLimiterConfig
-  }
-  redis: {
-    config: RedisLimiterConfig
-  }
-}
-
-/**
- * Expected config for limiter stores
- */
-export type StoresConfig = Record<
-  string,
-  {
-    [K in keyof LimiterBackendStores]: LimiterBackendStores[K]['config']
-  }[keyof LimiterBackendStores]
->
-
-/**
- * The config defined by the end user
- */
-export type LimiterConfig = {
-  enabled: boolean
 }
 
 /**
@@ -146,3 +173,13 @@ export type HttpLimiterFactory<Stores> = (
   | Promise<HttpLimiterConfigBuilder<Stores>>
   | null
   | Promise<null>
+
+/**
+ * Factory function to instantiate a limiter store
+ */
+export type LimiterStoreFactory = (config?: RuntimeConfig) => LimiterStoreContract
+
+/**
+ * Shape of limiter Service
+ */
+export interface LimiterService extends LimiterManager<any, any> {}

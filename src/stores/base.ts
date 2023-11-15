@@ -1,3 +1,11 @@
+/*
+ * @adonisjs/limiter
+ *
+ * (c) AdonisJS
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
 import string from '@poppinss/utils/string'
 import { RateLimiterAbstract } from 'rate-limiter-flexible'
 import { LimiterStoreContract, LimiterResponse } from '../types.js'
@@ -57,7 +65,7 @@ export default abstract class BaseLimiterStore implements LimiterStoreContract {
   }
 
   /**
-   * Increment the requests count. This method same as "consume"
+   * Increment the requests count. This method is the same as "consume"
    * but does not fail when the requests have been exhausted.
    */
   async increment(key: string | number): Promise<void> {
@@ -125,8 +133,14 @@ export default abstract class BaseLimiterStore implements LimiterStoreContract {
    * Block a given key for a given duration. The duration should
    * be either in milliseconds or a string expression.
    */
-  block(key: string | number, duration: string | number) {
-    return this.#rateLimiter.block(key, this.#timeToSeconds(duration))
+  async block(key: string | number, duration: string | number) {
+    const response = await this.#rateLimiter.block(key, this.#timeToSeconds(duration))
+    return {
+      remaining: response.remainingPoints,
+      limit: this.#rateLimiter.points,
+      consumed: response.consumedPoints,
+      retryAfter: response.msBeforeNext,
+    }
   }
 
   /**
@@ -136,7 +150,13 @@ export default abstract class BaseLimiterStore implements LimiterStoreContract {
    * The duration should be either in milliseconds
    * or a string expression.
    */
-  set(key: string | number, requests: number, duration: string | number) {
-    return this.#rateLimiter.set(key, requests, this.#timeToSeconds(duration))
+  async set(key: string | number, requests: number, duration: string | number) {
+    const response = await this.#rateLimiter.set(key, requests, this.#timeToSeconds(duration))
+    return {
+      remaining: response.remainingPoints,
+      limit: this.#rateLimiter.points,
+      consumed: response.consumedPoints,
+      retryAfter: response.msBeforeNext,
+    }
   }
 }
