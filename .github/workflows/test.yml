@@ -5,6 +5,10 @@ on:
 jobs:
   linux:
     runs-on: ubuntu-latest
+    strategy:
+    matrix:
+      node-version: [18.16.0, 20.x]
+
     services:
       postgres:
         image: postgres
@@ -39,19 +43,18 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-    strategy:
-      matrix:
-        node-version:
-          - 16.15.1
-          - 18.x
+
     steps:
       - uses: actions/checkout@v2
+
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node-version }}
+
       - name: Install
         run: npm install
+
       - name: Run tests
         run: npm test
         env:
@@ -66,3 +69,9 @@ jobs:
           REDIS_HOST: 0.0.0.0
           REDIS_PORT: 6379
           DB_NAME: rate_limiter
+
+  lint:
+    uses: adonisjs/.github/.github/workflows/lint.yml@main
+
+  typecheck:
+    uses: adonisjs/.github/.github/workflows/typecheck.yml@main
