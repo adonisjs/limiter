@@ -36,6 +36,9 @@ test.group('Throttle middleware', (group) => {
       const request = new RequestFactory().merge({ req, res, encryption }).create()
       const response = new ResponseFactory().merge({ req, res, encryption }).create()
       const ctx = new HttpContextFactory().merge({ request, response }).create()
+      ctx.route = {
+        pattern: '/',
+      } as any
 
       const config = await defineConfig({
         default: 'redis',
@@ -53,13 +56,14 @@ test.group('Throttle middleware', (group) => {
       try {
         await middleware.handle(ctx, async () => {}, 'foo')
       } catch (error) {
-        res.writeHead(error.status)
-        res.end(error.message)
+        ctx.response.status(error.status).send(error.message)
+      } finally {
+        ctx.response.finish()
       }
     })
     const { text } = await supertest(server).get('/')
 
-    assert.deepEqual(text, 'Invalid limiter "foo" applied on "undefined" route')
+    assert.deepEqual(text, 'Invalid limiter "foo" applied on "/" route')
   })
 
   test('continue when limiter is defined and not exceeded', async ({ assert }) => {
@@ -88,14 +92,98 @@ test.group('Throttle middleware', (group) => {
       await middleware.handle(
         ctx,
         async () => {
-          res.writeHead(200)
-          res.end('ok')
+          ctx.response.send('ok')
+          ctx.response.finish()
         },
         'main'
       )
     })
-    const { text } = await supertest(server).get('/')
+    const { text, statusCode } = await supertest(server).get('/')
 
+    assert.equal(statusCode, 200)
+    assert.deepEqual(text, 'ok')
+  })
+
+  test('continue when limiter is defined with no limit', async ({ assert }) => {
+    const server = createServer(async (req, res) => {
+      const request = new RequestFactory().merge({ req, res, encryption }).create()
+      const response = new ResponseFactory().merge({ req, res, encryption }).create()
+      const ctx = new HttpContextFactory().merge({ request, response }).create()
+
+      const config = await defineConfig({
+        default: 'redis',
+        stores: {
+          redis: stores.redis({
+            client: 'redis',
+            connectionName: 'main',
+          }),
+        },
+      }).resolver(app)
+
+      const manager = new LimiterManager(config, {})
+
+      manager.define('main', (_ctx) => {
+        return manager.noLimit()
+      })
+
+      const middleware = new ThrottleMiddleware(manager)
+      await middleware.handle(
+        ctx,
+        async () => {
+          ctx.response.send('ok')
+          ctx.response.finish()
+        },
+        'main'
+      )
+    })
+    const { text, statusCode } = await supertest(server).get('/')
+
+    assert.equal(statusCode, 200)
+    assert.deepEqual(text, 'ok')
+  })
+
+  test('continue when limiter is disabled in config', async ({ assert }) => {
+    const server = createServer(async (req, res) => {
+      const request = new RequestFactory().merge({ req, res, encryption }).create()
+      const response = new ResponseFactory().merge({ req, res, encryption }).create()
+      const ctx = new HttpContextFactory().merge({ request, response }).create()
+
+      const config = await defineConfig({
+        enabled: false,
+        default: 'redis',
+        stores: {
+          redis: stores.redis({
+            client: 'redis',
+            connectionName: 'main',
+          }),
+        },
+      }).resolver(app)
+
+      const manager = new LimiterManager(config, {})
+
+      manager.define('main', (_ctx) => {
+        return manager.allowRequests(0).every('10 mins')
+      })
+
+      const middleware = new ThrottleMiddleware(manager)
+      try {
+        await middleware.handle(
+          ctx,
+          async () => {
+            ctx.response.send('ok')
+          },
+          'main'
+        )
+      } catch (error) {
+        ctx.response.status(error.status).send(error.message)
+      } finally {
+        ctx.response.finish()
+      }
+    })
+
+    const { text, statusCode } = await supertest(server).get('/')
+
+    assert.equal(statusCode, 200)
     assert.deepEqual(text, 'ok')
   })
 
@@ -116,9 +204,12 @@ test.group('Throttle middleware', (group) => {
       }).resolver(app)
 
       const manager = new LimiterManager(config, {})
-
       manager.define('main', (_ctx) => {
-        return manager.allowRequests(1).every('10 mins')
+        return manager
+          .allowRequests(1)
+          .every('10 mins')
+          .store('redis')
+          .limitExceeded(() => {})
       })
 
       const middleware = new ThrottleMiddleware(manager)
@@ -126,18 +217,18 @@ test.group('Throttle middleware', (group) => {
         await middleware.handle(
           ctx,
           async () => {
-            res.writeHead(200)
-            res.end('ok')
+            ctx.response.send('ok')
           },
           'main'
         )
       } catch (error) {
-        res.writeHead(error.status)
-        res.end(error.message)
+        ctx.response.status(error.status).send(error.message)
+      } finally {
+        ctx.response.finish()
       }
     })
 
-    await supertest(server).get('/')
+    await Promise.all([supertest(server).get('/'), supertest(server).get('/')])
     const { text } = await supertest(server).get('/')
     assert.deepEqual(text, 'Too many requests')
   })

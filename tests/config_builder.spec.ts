@@ -29,7 +29,7 @@ test.group('Config builder', () => {
   })
 
   test('register custom key', ({ assert }) => {
-    const builder = new HttpLimiterConfigBuilder()
-    assert.deepEqual(builder.usingKey('foo_bar').toJSON().key, 'foo_bar')
+    const builder = new HttpLimiterConfigBuilder<any>()
+    assert.deepEqual(builder.store('foo').usingKey('foo_bar').toJSON().key, 'foo_bar')
   })
 })

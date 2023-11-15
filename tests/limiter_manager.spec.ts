@@ -46,7 +46,7 @@ test.group('Limiter manager', (group) => {
     }).resolver(app)
 
     const manager = new LimiterManager(config, {})
-    const limiter = manager.use({ duration: '1 sec', requests: 5 })
+    const limiter = manager.use({ duration: '1 sec', requests: 5, blockDuration: '30 mins' })
     await limiter.consume('user_id_1')
 
     const response = await limiter.get('user_id_1')
@@ -148,6 +148,27 @@ test.group('Limiter manager', (group) => {
       () => manager.use('redis' as any, { duration: '1 sec', requests: 5 }),
       'Unrecognized limiter store "redis". Make sure to define it inside "config/limiter.ts" file'
     )
+  })
+
+  test('raise exception when redis connection is clised', async ({ assert }) => {
+    const appWithRedis = await getApp({ withRedis: true })
+    const config = await defineConfig({
+      default: 'redis',
+      stores: {
+        redis: stores.redis({
+          client: 'redis',
+          connectionName: 'main',
+        }),
+      },
+    }).resolver(appWithRedis.app)
+
+    const manager = new LimiterManager(config, {})
+    const limiter = manager.use({ duration: '1 sec', requests: 5 })
+
+    await appWithRedis.redis!.disconnect()
+
+    await assert.rejects(() => limiter.increment('user_id_1'), 'Connection is closed.')
+    await assert.rejects(() => limiter.consume('user_id_1'), 'Connection is closed.')
   })
 
   test('return cached limiter when runtime config is same', async ({ assert }) => {

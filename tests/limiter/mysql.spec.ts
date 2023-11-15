@@ -37,6 +37,20 @@ test.group('Limiter | Mysql', (group) => {
     })
   })
 
+  test('get remaining requests for a given key', async ({ assert }) => {
+    const limiter = getDatabaseRateLimiter(connection, { duration: 1000 * 10, points: 5 })
+    await limiter.increment('user_id_1')
+
+    const remaining = await limiter.remaining('user_id_1')
+    assert.equal(remaining, 4)
+  })
+
+  test('get remaining requests for new key', async ({ assert }) => {
+    const limiter = getDatabaseRateLimiter(connection, { duration: 1000 * 10, points: 5 })
+    const remaining = await limiter.remaining('user_id_1')
+    assert.equal(remaining, 5)
+  })
+
   test('consume points for a given key', async ({ assert }) => {
     const limiter = getDatabaseRateLimiter(connection, { duration: 1000 * 10, points: 5 })
     await limiter.consume('user_id_1')
@@ -126,5 +140,10 @@ test.group('Limiter | Mysql', (group) => {
       })
       assert.isTrue(await limiter.isBlocked('user_id_1'))
     }
+  })
+
+  test("don't block on new key", async ({ assert }) => {
+    const limiter = getDatabaseRateLimiter(connection, { duration: 1000 * 10, points: 5 })
+    assert.isFalse(await limiter.isBlocked('non-existent-key'))
   })
 })

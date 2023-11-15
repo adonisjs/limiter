@@ -43,7 +43,7 @@ export async function getApp(options: { withDb?: boolean; withRedis?: boolean } 
             client: 'pg',
             connection: {
               host: process.env.PG_HOST,
-              port: Number(process.env.PG_PORT || 5432),
+              port: Number(process.env.PG_PORT),
               database: process.env.DB_NAME,
               user: process.env.PG_USER,
               password: process.env.PG_PASSWORD,

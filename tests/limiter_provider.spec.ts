@@ -68,15 +68,10 @@ test.group('Limiter Provider', () => {
     await app.init()
     await app.boot()
 
-    // assert.throws not working here for some reason
-    try {
-      await app.container.make('limiter')
-    } catch (err) {
-      assert.equal(
-        err.message,
-        'Invalid "config/limiter.ts" file. Make sure you are using the "defineConfig" method'
-      )
-    }
+    await assert.rejects(
+      () => app.container.make('limiter'),
+      'Invalid "config/limiter.ts" file. Make sure you are using the "defineConfig" method'
+    )
   })
 })
 

@@ -76,6 +76,29 @@ test.group('Define config', () => {
     assert.instanceOf(config.stores.db(), DatabaseLimiterStore)
   })
 
+  test('transform config with custom function store', async ({ assert }) => {
+    const { app } = await getApp({ withRedis: true })
+    const config = await defineConfig({
+      default: 'custom',
+      stores: {
+        custom: function (_config) {
+          return {} as any
+        },
+      },
+    }).resolver(app)
+
+    assert.snapshot(config).matchInline(`
+        {
+          "default": "custom",
+          "enabled": true,
+          "stores": {
+            "custom": [Function],
+            "memory": [Function],
+          },
+        }
+      `)
+  })
+
   test('throw on unsupported db dialect', async ({ assert }) => {
     const appForDb = new AppFactory().create(BASE_URL, () => {}) as ApplicationService
     appForDb.rcContents({
