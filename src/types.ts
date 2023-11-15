@@ -24,13 +24,13 @@ export interface LimiterStoreContract {
   requests: number
 
   /**
-   * The duration (milliseconds) in which
+   * The duration (seconds) in which
    * requests should be checked
    */
   duration: number
 
   /**
-   * The duration (milliseconds) to block
+   * The duration (seconds) to block
    * requests for once limit is exceeded
    */
   blockDuration: number
