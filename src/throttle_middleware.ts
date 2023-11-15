@@ -61,7 +61,7 @@ export default class ThrottleMiddleware {
     /**
      * Abort when user has exhausted all the requests
      */
-    if (limiterResponse && limiterResponse.remaining < 0) {
+    if (limiterResponse && limiterResponse.remaining <= 0) {
       this.#abort(limiterResponse, limitedExceededCallback)
     }
 
@@ -85,6 +85,13 @@ export default class ThrottleMiddleware {
    * Middleware handler for throttling HTTP requests
    */
   async handle(ctx: HttpContext, next: NextFn, httpLimiter: string) {
+    /**
+     * Skip if limiter is disabled
+     */
+    if (!this.#limiter.enabled) {
+      return next()
+    }
+
     const configFactory = this.#limiter.httpLimiters[httpLimiter]
 
     /**

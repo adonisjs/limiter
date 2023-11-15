@@ -51,11 +51,19 @@ export class LimiterManager<
   }
 
   /**
+   * Return whether limiter is enabled/disabled
+   * globally
+   */
+  get enabled() {
+    return this.#config.enabled
+  }
+
+  /**
    * Convert user defined milliseconds to duration expression
    * to seconds
    */
-  #timeToSeconds(duration?: string | number): undefined | number {
-    return duration ? string.milliseconds.parse(duration) / 1000 : undefined
+  #timeToSeconds(duration: string | number): number {
+    return string.milliseconds.parse(duration) / 1000
   }
 
   /**
@@ -94,9 +102,7 @@ export class LimiterManager<
 
     /**
      * Create limiter and cache it
-    //  */
-    // const limiter = this.#config.stores[store as Extract<keyof Stores, 'string'>](config)
-    // this.#limiters.set(storeKey, limiter)
+     */
     const limiterResolver = this.#config.stores[store as Extract<keyof Stores, 'string'>]
     if (!limiterResolver) throw UnrecognizedStoreException.invoke(store as string)
     const limiter = limiterResolver(config)
