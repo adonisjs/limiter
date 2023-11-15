@@ -87,7 +87,7 @@ test.group('Limiter manager', (group) => {
         db: stores.db({
           client: 'db',
           connectionName: 'mysql',
-          dbName: 'adonis_limiter',
+          dbName: process.env.DB_NAME!,
           tableName: 'rate_limits',
         }),
       },
@@ -112,7 +112,7 @@ test.group('Limiter manager', (group) => {
         db: stores.db({
           client: 'db',
           connectionName: 'pg',
-          dbName: 'adonis_limiter',
+          dbName: process.env.DB_NAME!,
           tableName: 'rate_limits',
         }),
       },
@@ -137,7 +137,7 @@ test.group('Limiter manager', (group) => {
         db: stores.db({
           client: 'db',
           connectionName: 'pg',
-          dbName: 'adonis_limiter',
+          dbName: process.env.DB_NAME!,
           tableName: 'rate_limits',
         }),
       },
@@ -197,7 +197,7 @@ test.group('Limiter manager', (group) => {
         db: stores.db({
           client: 'db',
           connectionName: 'pg',
-          dbName: 'adonis_limiter',
+          dbName: process.env.DB_NAME!,
           tableName: 'rate_limits',
         }),
       },
