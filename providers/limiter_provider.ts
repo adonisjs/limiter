@@ -54,7 +54,7 @@ export default class LimiterProvider {
   #registerThrottleMiddleware() {
     this.app.container.singleton(ThrottleMiddleware, async (resolver) => {
       const manager = await resolver.make('limiter')
-      return new ThrottleMiddleware(manager)
+      return new ThrottleMiddleware(manager as any)
     })
   }
 

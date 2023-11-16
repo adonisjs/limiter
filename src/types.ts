@@ -12,6 +12,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import type { HttpLimiterConfigBuilder } from './config_builder.js'
 import type { ThrottleException } from './exceptions/throttle_exception.js'
 import { LimiterManager } from './limiter_manager.js'
+import { ConfigProvider } from '@adonisjs/core/types'
 
 /**
  * Limiter stores must implement this contract.
@@ -180,6 +181,19 @@ export type HttpLimiterFactory<Stores> = (
 export type LimiterStoreFactory = (config?: RuntimeConfig) => LimiterStoreContract
 
 /**
- * Shape of limiter Service
+ * Limiter stores are inferred inside the user application
+ * from the config file
  */
-export interface LimiterService extends LimiterManager<any, any> {}
+export interface LimiterStores {}
+export type InferLimiterStores<
+  T extends ConfigProvider<{ stores: Record<string, LimiterStoreFactory> }>,
+> = Awaited<ReturnType<T['resolver']>>['stores']
+
+/**
+ * Shape of limiter service
+ */
+export interface LimiterService
+  extends LimiterManager<
+    LimiterStores extends Record<string, LimiterStoreFactory> ? LimiterStores : never,
+    any
+  > {}

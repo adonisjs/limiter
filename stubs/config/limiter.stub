@@ -3,7 +3,7 @@
 }}}
 import { defineConfig, stores } from '@adonisjs/limiter'
 
-export default defineConfig({
+const limiterConfig = defineConfig({
   enabled: true,
 
   /**
@@ -22,3 +22,9 @@ export default defineConfig({
     }),
   },
 })
+
+declare module '@adonisjs/limiter/types' {
+  interface LimiterStores extends InferLimiterStores<typeof limiterConfig> {}
+}
+
+export default limiterConfig

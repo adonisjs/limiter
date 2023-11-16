@@ -25,7 +25,7 @@ import type {
  * of rate limiter using different backend stores.
  */
 export class LimiterManager<
-  Stores extends Record<string, LimiterStoreFactory>,
+  KnownStores extends Record<string, LimiterStoreFactory>,
   HttpLimiters extends any,
 > {
   /**
@@ -34,16 +34,16 @@ export class LimiterManager<
   #limiters: Map<string, LimiterStoreContract> = new Map()
 
   #config: LimiterConfig & {
-    default: keyof Stores
-    stores: Stores
+    default: keyof KnownStores
+    stores: KnownStores
   }
 
   httpLimiters: HttpLimiters
 
   constructor(
     config: LimiterConfig & {
-      default: keyof Stores
-      stores: Stores
+      default: keyof KnownStores
+      stores: KnownStores
     },
     httpLimiters: HttpLimiters
   ) {
@@ -71,7 +71,7 @@ export class LimiterManager<
    * Create a unique key for a combination of store, requests,
    * duration and block duration.
    */
-  #makeStoreKey(store: Extract<keyof Stores, 'string'>, config: RuntimeConfig) {
+  #makeStoreKey(store: Extract<keyof KnownStores, 'string'>, config: RuntimeConfig) {
     return [
       `s:${store}`,
       `r:${config.requests}`,
@@ -84,14 +84,14 @@ export class LimiterManager<
    * Get an instance of the limiter for a given store.
    */
   use(config: RuntimeConfig): LimiterStoreContract
-  use(store: keyof Stores, config: RuntimeConfig): LimiterStoreContract
-  use(store: keyof Stores | RuntimeConfig, config?: RuntimeConfig): LimiterStoreContract {
+  use(store: keyof KnownStores, config: RuntimeConfig): LimiterStoreContract
+  use(store: keyof KnownStores | RuntimeConfig, config?: RuntimeConfig): LimiterStoreContract {
     if (!config) {
       config = store as RuntimeConfig
       store = this.#config.default
     }
 
-    const storeKey = this.#makeStoreKey(store as Extract<keyof Stores, 'string'>, config)
+    const storeKey = this.#makeStoreKey(store as Extract<keyof KnownStores, 'string'>, config)
 
     /**
      * Return the cached instance for the given store and
@@ -104,7 +104,7 @@ export class LimiterManager<
     /**
      * Create limiter and cache it
      */
-    const limiterResolver = this.#config.stores[store as Extract<keyof Stores, 'string'>]
+    const limiterResolver = this.#config.stores[store as Extract<keyof KnownStores, 'string'>]
     if (!limiterResolver) throw UnrecognizedStoreException.invoke(store as string)
     const limiter = limiterResolver(config)
     this.#limiters.set(storeKey, limiter)
@@ -115,19 +115,19 @@ export class LimiterManager<
   /**
    * Define HTTP limiter
    */
-  define<Name extends string, Callback extends HttpLimiterFactory<Stores>>(
+  define<Name extends string, Callback extends HttpLimiterFactory<KnownStores>>(
     name: Name,
     callback: Callback
-  ): LimiterManager<Stores, HttpLimiters & { [K in Name]: Callback }> {
+  ): LimiterManager<KnownStores, HttpLimiters & { [K in Name]: Callback }> {
     ;(this.httpLimiters as any)[name] = callback
-    return this as LimiterManager<Stores, HttpLimiters & { [K in Name]: Callback }>
+    return this as LimiterManager<KnownStores, HttpLimiters & { [K in Name]: Callback }>
   }
 
   /**
    * Define allowed requests for a given duration
    */
   allowRequests(request: number) {
-    return new HttpLimiterConfigBuilder<Stores>().allowRequests(request)
+    return new HttpLimiterConfigBuilder<KnownStores>().allowRequests(request)
   }
 
   /**
