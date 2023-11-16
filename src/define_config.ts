@@ -97,7 +97,7 @@ export const stores: {
   redis(config) {
     return configProvider.create(async (app) => {
       const redis = await app.container.make('redis')
-      const connection = redis.connection()
+      const connection = redis.connection(config.connectionName)
       return (runtimeConfig) => {
         return new RedisLimiterStore(config, connection, runtimeConfig)
       }
