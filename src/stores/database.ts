@@ -19,8 +19,8 @@ import type { DatabaseLimiterConfig, RuntimeConfig } from '../types.js'
 
 export default class DatabaseLimiterStore extends BaseLimiterStore {
   constructor(
-    config: DatabaseLimiterConfig,
     connection: QueryClientContract,
+    config: DatabaseLimiterConfig,
     runtimeConfig?: RuntimeConfig
   ) {
     if (config.client !== 'db') {

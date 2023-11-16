@@ -123,6 +123,7 @@ export function getDatabaseRateLimiter(
   config: { duration: number; points: number; blockDuration?: number }
 ) {
   return new DatabaseLimiterStore(
+    connection,
     {
       client: 'db',
       connectionName: connection.connectionName,
@@ -130,7 +131,6 @@ export function getDatabaseRateLimiter(
       tableName: 'rate_limits',
       keyPrefix: 'adonis_limiter',
     },
-    connection,
     { requests: config.points, duration: config.duration, blockDuration: config.blockDuration }
   )
 }
@@ -143,12 +143,12 @@ export function getRedisLimiter(
   config: { duration: number; points: number; blockDuration?: number }
 ) {
   return new RedisLimiterStore(
+    connection,
     {
       client: 'redis',
       connectionName: '',
       keyPrefix: 'adonis_limiter',
     },
-    connection,
     { requests: config.points, duration: config.duration, blockDuration: config.blockDuration }
   )
 }

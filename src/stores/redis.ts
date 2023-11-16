@@ -17,7 +17,7 @@ import type { Connection } from '@adonisjs/redis/types'
 import type { RedisLimiterConfig, RuntimeConfig } from '../types.js'
 
 export default class RedisLimiterStore extends BaseLimiterStore {
-  constructor(config: RedisLimiterConfig, connection: Connection, runtimeConfig?: RuntimeConfig) {
+  constructor(connection: Connection, config: RedisLimiterConfig, runtimeConfig?: RuntimeConfig) {
     if (config.client !== 'redis') {
       throw InvalidClientException.invoke(config.client)
     }

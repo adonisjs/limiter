@@ -90,7 +90,7 @@ export const stores: {
       const database = await app.container.make('lucid.db')
       const connection = database.connection(config.connectionName)
       return (runtimeConfig) => {
-        return new DatabaseLimiterStore(config, connection, runtimeConfig)
+        return new DatabaseLimiterStore(connection, config, runtimeConfig)
       }
     })
   },
@@ -99,7 +99,7 @@ export const stores: {
       const redis = await app.container.make('redis')
       const connection = redis.connection(config.connectionName)
       return (runtimeConfig) => {
-        return new RedisLimiterStore(config, connection, runtimeConfig)
+        return new RedisLimiterStore(connection, config, runtimeConfig)
       }
     })
   },
