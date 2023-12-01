@@ -17,8 +17,10 @@ export class UnsupportedDbException extends Exception {
   static invoke(dialect: string) {
     return new this(
       `Unsupported limiter database type "${dialect}". Only "mysql" and "pg" are supported`,
-      500,
-      'E_UNSUPPORTED_LIMITER_DB'
+      {
+        status: 500,
+        code: 'E_UNSUPPORTED_LIMITER_DB',
+      }
     )
   }
 }

@@ -1,30 +1,33 @@
 /*
- * @adonisjs/framework
+ * @adonisjs/limiter
  *
- * (c) Harminder Virk
+ * (c) AdonisJS
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
 
 import { test } from '@japa/runner'
-import { ThrottleException } from '../../src/exceptions/throttle_exception'
-import { Limiter } from '../../src/limiter'
-import { setup, cleanup, getDatabaseRateLimiter, migrate, rollback } from '../../test_helpers'
+
+import { getApp, getDatabaseRateLimiter, migrate, rollback } from '../../test_helpers/main.js'
+import { ThrottleException } from '../../src/exceptions/throttle_exception.js'
+
+const { app, ...services } = await getApp({ withDb: true })
+const database = services.database!
+const connection = database.connection('pg')
 
 test.group('Limiter | PostgreSQL', (group) => {
   group.each.setup(async () => {
-    await setup()
-    return () => cleanup()
+    await migrate('pg', database)
+    return () => rollback('pg', database)
   })
 
-  group.each.setup(async () => {
-    await migrate('pg')
-    return () => rollback('pg')
+  group.teardown(async () => {
+    await database.manager.closeAll()
   })
 
   test('consume points for a given key', async ({ assert }) => {
-    const limiter = new Limiter(getDatabaseRateLimiter('pg', 1000 * 10, 5))
+    const limiter = getDatabaseRateLimiter(connection, { duration: 1000 * 10, points: 5 })
     await limiter.consume('user_id_1')
 
     const response = await limiter.get('user_id_1')
@@ -35,10 +38,24 @@ test.group('Limiter | PostgreSQL', (group) => {
     })
   })
 
+  test('get remaining requests for a given key', async ({ assert }) => {
+    const limiter = getDatabaseRateLimiter(connection, { duration: 1000 * 10, points: 5 })
+    await limiter.increment('user_id_1')
+
+    const remaining = await limiter.remaining('user_id_1')
+    assert.equal(remaining, 4)
+  })
+
+  test('get remaining requests for new key', async ({ assert }) => {
+    const limiter = getDatabaseRateLimiter(connection, { duration: 1000 * 10, points: 5 })
+    const remaining = await limiter.remaining('user_id_1')
+    assert.equal(remaining, 5)
+  })
+
   test('fail when enable to consume', async ({ assert }) => {
     assert.plan(2)
 
-    const limiter = new Limiter(getDatabaseRateLimiter('pg', 1000 * 10, 1))
+    const limiter = getDatabaseRateLimiter(connection, { duration: 1000 * 10, points: 1 })
     await limiter.consume('user_id_1')
 
     try {
@@ -55,7 +72,7 @@ test.group('Limiter | PostgreSQL', (group) => {
   test('fail when trying to consume points on a blocked key', async ({ assert }) => {
     assert.plan(2)
 
-    const limiter = new Limiter(getDatabaseRateLimiter('pg', 1000 * 10, 1))
+    const limiter = getDatabaseRateLimiter(connection, { duration: 1000 * 10, points: 1 })
     await limiter.block('user_id_1', 1000 * 10)
 
     try {
@@ -70,7 +87,7 @@ test.group('Limiter | PostgreSQL', (group) => {
   })
 
   test('set requests consumed for a given key', async ({ assert }) => {
-    const limiter = new Limiter(getDatabaseRateLimiter('pg', 1000 * 10, 5))
+    const limiter = getDatabaseRateLimiter(connection, { duration: 1000 * 10, points: 5 })
     await limiter.set('user_id_1', 10, 1000 * 10)
 
     const response = await limiter.get('user_id_1')
@@ -82,7 +99,7 @@ test.group('Limiter | PostgreSQL', (group) => {
   })
 
   test('delete key', async ({ assert }) => {
-    const limiter = new Limiter(getDatabaseRateLimiter('pg', 1000 * 10, 5))
+    const limiter = getDatabaseRateLimiter(connection, { duration: 1000 * 10, points: 1 })
     await limiter.set('user_id_1', 10, 1000 * 10)
     await limiter.delete('user_id_1')
 
@@ -95,7 +112,11 @@ test.group('Limiter | PostgreSQL', (group) => {
   }) => {
     assert.plan(3)
 
-    const limiter = new Limiter(getDatabaseRateLimiter('pg', 1000 * 10, 1, 1000 * 60))
+    const limiter = getDatabaseRateLimiter(connection, {
+      duration: 1000 * 10,
+      points: 1,
+      blockDuration: 1000 * 60,
+    })
     await limiter.consume('user_id_1')
 
     try {
@@ -108,5 +129,10 @@ test.group('Limiter | PostgreSQL', (group) => {
       })
       assert.isTrue(await limiter.isBlocked('user_id_1'))
     }
+  })
+
+  test("don't block on new key", async ({ assert }) => {
+    const limiter = getDatabaseRateLimiter(connection, { duration: 1000 * 10, points: 5 })
+    assert.isFalse(await limiter.isBlocked('non-existent-key'))
   })
 })

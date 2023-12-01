@@ -1,0 +1,9 @@
+{{{
+  exports({ to: app.startPath('limiter.ts') })
+}}}
+// import Limiter from '@adonisjs/limiter/services/main'
+
+// export const { httpLimiters } = Limiter
+//   .define('global', (_ctx) => {
+//     return Limiter.allowRequests(1000).every('1 min')
+//   })

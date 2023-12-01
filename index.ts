@@ -1,4 +1,4 @@
-/*
+/**
  * @adonisjs/limiter
  *
  * (c) AdonisJS
@@ -7,4 +7,6 @@
  * file that was distributed with this source code.
  */
 
-/// <reference path="./container.ts" />
+export { configure } from './configure.js'
+export { stubsRoot } from './stubs/main.js'
+export { defineConfig, stores } from './src/define_config.js'

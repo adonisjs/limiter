@@ -1,14 +1,15 @@
 /*
  * @adonisjs/limiter
  *
- * (c) Harminder Virk
+ * (c) AdonisJS
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
 
 import { test } from '@japa/runner'
-import { HttpLimiterConfigBuilder } from '../src/config_builder'
+
+import { HttpLimiterConfigBuilder } from '../src/config_builder.js'
 
 test.group('Config builder', () => {
   test('create runtime config', ({ assert }) => {
@@ -29,7 +30,7 @@ test.group('Config builder', () => {
   })
 
   test('register custom key', ({ assert }) => {
-    const builder = new HttpLimiterConfigBuilder()
-    assert.deepEqual(builder.usingKey('foo_bar').toJSON().key, 'foo_bar')
+    const builder = new HttpLimiterConfigBuilder<any>()
+    assert.deepEqual(builder.store('foo').usingKey('foo_bar').toJSON().key, 'foo_bar')
   })
 })

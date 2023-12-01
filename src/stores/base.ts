@@ -1,30 +1,43 @@
 /*
  * @adonisjs/limiter
  *
- * (c) Harminder Virk
+ * (c) AdonisJS
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
 
-import { string } from '@poppinss/utils/build/helpers'
 import { RateLimiterAbstract } from 'rate-limiter-flexible'
+import string from '@poppinss/utils/string'
 
-import type { LimiterResponse } from '../contracts'
-import { ThrottleException } from '../exceptions/throttle_exception'
+import { ThrottleException } from '../exceptions/throttle_exception.js'
 
-/**
- * Limiter class exposes the API to get,consume,update
- * and block a certain key
- */
-export class Limiter {
-  constructor(private rateLimiter: RateLimiterAbstract) {}
+import type { LimiterStoreContract, LimiterResponse } from '../types.js'
+
+export default abstract class BaseLimiterStore implements LimiterStoreContract {
+  #rateLimiter: RateLimiterAbstract
 
   /**
    * Convert milliseconds or time expression to seconds
    */
-  private timeToSeconds(duration: number | string) {
-    return string.toMs(duration) / 1000
+  #timeToSeconds(duration: string | number): number {
+    return string.milliseconds.parse(duration) / 1000
+  }
+
+  constructor(rateLimiter: RateLimiterAbstract) {
+    this.#rateLimiter = rateLimiter
+  }
+
+  get requests() {
+    return this.#rateLimiter.points
+  }
+
+  get duration() {
+    return this.#rateLimiter.duration
+  }
+
+  get blockDuration() {
+    return this.#rateLimiter.blockDuration
   }
 
   /**
@@ -33,10 +46,10 @@ export class Limiter {
    */
   async consume(key: string | number): Promise<LimiterResponse> {
     try {
-      const response = await this.rateLimiter.consume(key, 1)
+      const response = await this.#rateLimiter.consume(key, 1)
       return {
         remaining: response.remainingPoints,
-        limit: this.rateLimiter.points,
+        limit: this.#rateLimiter.points,
         consumed: response.consumedPoints,
         retryAfter: response.msBeforeNext,
       }
@@ -44,7 +57,7 @@ export class Limiter {
       if (errorResponse.consumedPoints) {
         throw ThrottleException.invoke({
           remaining: errorResponse.remainingPoints,
-          limit: this.rateLimiter.points,
+          limit: this.#rateLimiter.points,
           consumed: errorResponse.consumedPoints,
           retryAfter: errorResponse.msBeforeNext,
         })
@@ -55,7 +68,7 @@ export class Limiter {
   }
 
   /**
-   * Increment the requests count. This method same as "consume"
+   * Increment the requests count. This method is the same as "consume"
    * but does not fail when the requests have been exhausted.
    */
   async increment(key: string | number): Promise<void> {
@@ -73,14 +86,14 @@ export class Limiter {
    * key doesn't exists
    */
   async get(key: string | number): Promise<LimiterResponse | null> {
-    const response = await this.rateLimiter.get(key)
+    const response = await this.#rateLimiter.get(key)
     if (!response || Number.isNaN(response.remainingPoints)) {
       return null
     }
 
     return {
       remaining: response.remainingPoints,
-      limit: this.rateLimiter.points,
+      limit: this.#rateLimiter.points,
       consumed: response.consumedPoints,
       retryAfter: response.msBeforeNext,
     }
@@ -92,7 +105,7 @@ export class Limiter {
   async remaining(key: string | number): Promise<number> {
     const response = await this.get(key)
     if (!response) {
-      return this.rateLimiter.points
+      return this.#rateLimiter.points
     }
 
     return response.remaining
@@ -116,15 +129,21 @@ export class Limiter {
    * Delete a given key
    */
   delete(key: string | number) {
-    return this.rateLimiter.delete(key)
+    return this.#rateLimiter.delete(key)
   }
 
   /**
    * Block a given key for a given duration. The duration should
    * be either in milliseconds or a string expression.
    */
-  block(key: string | number, duration: string | number) {
-    return this.rateLimiter.block(key, this.timeToSeconds(duration))
+  async block(key: string | number, duration: string | number) {
+    const response = await this.#rateLimiter.block(key, this.#timeToSeconds(duration))
+    return {
+      remaining: response.remainingPoints,
+      limit: this.#rateLimiter.points,
+      consumed: response.consumedPoints,
+      retryAfter: response.msBeforeNext,
+    }
   }
 
   /**
@@ -134,7 +153,13 @@ export class Limiter {
    * The duration should be either in milliseconds
    * or a string expression.
    */
-  set(key: string | number, requests: number, duration: string | number) {
-    return this.rateLimiter.set(key, requests, this.timeToSeconds(duration))
+  async set(key: string | number, requests: number, duration: string | number) {
+    const response = await this.#rateLimiter.set(key, requests, this.#timeToSeconds(duration))
+    return {
+      remaining: response.remainingPoints,
+      limit: this.#rateLimiter.points,
+      consumed: response.consumedPoints,
+      retryAfter: response.msBeforeNext,
+    }
   }
 }

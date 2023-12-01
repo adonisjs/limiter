@@ -14,6 +14,9 @@ import { Exception } from '@poppinss/utils'
  */
 export class InvalidClientException extends Exception {
   static invoke(client: string) {
-    return new this(`Invalid limiter client "${client}"`, 500, 'E_INVALID_LIMITER_CLIENT')
+    return new this(`Invalid limiter client "${client}"`, {
+      status: 500,
+      code: 'E_INVALID_LIMITER_CLIENT',
+    })
   }
 }

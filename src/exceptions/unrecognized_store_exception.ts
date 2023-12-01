@@ -17,8 +17,10 @@ export class UnrecognizedStoreException extends Exception {
   static invoke(store: string) {
     return new this(
       `Unrecognized limiter store "${store}". Make sure to define it inside "config/limiter.ts" file`,
-      500,
-      'E_UNRECOGNIZED_LIMITER_STORE'
+      {
+        status: 500,
+        code: 'E_UNRECOGNIZED_LIMITER_STORE',
+      }
     )
   }
 }
