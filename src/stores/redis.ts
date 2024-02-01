@@ -7,31 +7,34 @@
  * file that was distributed with this source code.
  */
 
+import string from '@adonisjs/core/helpers/string'
+import type { RedisConnection } from '@adonisjs/redis'
 import { RateLimiterRedis } from 'rate-limiter-flexible'
 
-import BaseLimiterStore from './base.js'
-import { timeToSeconds } from '../helpers.js'
-import { InvalidClientException } from '../exceptions/invalid_client_exception.js'
+import RateLimiterBridge from './bridge.js'
+import type { LimiterRedisStoreConfig } from '../types.js'
 
-import type { Connection } from '@adonisjs/redis/types'
-import type { RedisLimiterConfig, RuntimeConfig } from '../types.js'
-
-export default class RedisLimiterStore extends BaseLimiterStore {
-  constructor(connection: Connection, config: RedisLimiterConfig, runtimeConfig?: RuntimeConfig) {
-    if (config.client !== 'redis') {
-      throw InvalidClientException.invoke(config.client)
-    }
+/**
+ * Limiter redis store wraps the "RateLimiterRedis" implementation
+ * from the "rate-limiter-flixible" package.
+ */
+export default class LimiterRedisStore extends RateLimiterBridge {
+  constructor(client: RedisConnection, config: LimiterRedisStoreConfig) {
     super(
       new RateLimiterRedis({
-        storeClient: connection.ioConnection,
+        rejectIfRedisNotReady: config.rejectIfRedisNotReady,
+        storeClient: client.ioConnection,
         keyPrefix: config.keyPrefix,
-        inMemoryBlockDuration: timeToSeconds(config.inMemoryBlockDuration),
-        inMemoryBlockOnConsumed: timeToSeconds(config.inMemoryBlockOnConsumed),
-        ...(runtimeConfig && {
-          points: runtimeConfig.requests,
-          duration: timeToSeconds(runtimeConfig.duration),
-          blockDuration: timeToSeconds(runtimeConfig.blockDuration),
-        }),
+        execEvenly: config.execEvenly,
+        points: config.requests,
+        duration: string.seconds.parse(config.duration),
+        inMemoryBlockOnConsumed: config.inMemoryBlockOnConsumed,
+        blockDuration: config.blockDuration
+          ? string.seconds.parse(config.blockDuration)
+          : undefined,
+        inMemoryBlockDuration: config.inMemoryBlockDuration
+          ? string.seconds.parse(config.inMemoryBlockDuration)
+          : undefined,
       })
     )
   }

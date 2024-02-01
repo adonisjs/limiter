@@ -10,7 +10,6 @@
 import { assert } from '@japa/assert'
 import { fileSystem } from '@japa/file-system'
 import { processCLIArgs, configure, run } from '@japa/runner'
-import { snapshot } from '@japa/snapshot'
 
 /*
 |--------------------------------------------------------------------------
@@ -28,7 +27,7 @@ import { snapshot } from '@japa/snapshot'
 processCLIArgs(process.argv.slice(2))
 configure({
   files: ['tests/**/*.spec.ts'],
-  plugins: [assert(), fileSystem(), snapshot()],
+  plugins: [assert(), fileSystem()],
   forceExit: true,
 })
 

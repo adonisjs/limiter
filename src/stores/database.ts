@@ -7,64 +7,75 @@
  * file that was distributed with this source code.
  */
 
+import string from '@adonisjs/core/helpers/string'
+import { RuntimeException } from '@poppinss/utils'
+import type { QueryClientContract } from '@adonisjs/lucid/types/database'
 import { RateLimiterMySQL, RateLimiterPostgres } from 'rate-limiter-flexible'
 
-import BaseLimiterStore from './base.js'
-import { timeToSeconds } from '../helpers.js'
-import { InvalidClientException } from '../exceptions/invalid_client_exception.js'
-import { UnsupportedDbException } from '../exceptions/unsupported_db_exception.js'
+import RateLimiterBridge from './bridge.js'
+import type { LimiterDatabaseStoreConfig } from '../types.js'
 
-import type { QueryClientContract } from '@adonisjs/lucid/types/database'
-import type { DatabaseLimiterConfig, RuntimeConfig } from '../types.js'
-
-export default class DatabaseLimiterStore extends BaseLimiterStore {
-  constructor(
-    connection: QueryClientContract,
-    config: DatabaseLimiterConfig,
-    runtimeConfig?: RuntimeConfig
-  ) {
-    if (config.client !== 'db') {
-      throw InvalidClientException.invoke(config.client)
-    }
-    super(
-      DatabaseLimiterStore.#createLimiter(
-        connection,
-        DatabaseLimiterStore.#createDbConfig(config, connection, runtimeConfig)
+/**
+ * Limiter database store wraps the "RateLimiterMySQL" or "RateLimiterPostgres"
+ * implementations from the "rate-limiter-flixible" package.
+ */
+export default class LimiterDatabaseStore extends RateLimiterBridge {
+  constructor(client: QueryClientContract, config: LimiterDatabaseStoreConfig) {
+    const dialectName = client.dialect.name
+    if (dialectName !== 'mysql' && dialectName !== 'postgres') {
+      throw new RuntimeException(
+        `Unsupported database "${dialectName}". The limiter can only work with PostgreSQL and MySQL databases`
       )
-    )
-  }
-
-  static #createLimiter(connection: QueryClientContract, config: any) {
-    switch (connection.dialect.name) {
-      case 'postgres':
-        return new RateLimiterPostgres(config)
-      case 'mysql':
-        return new RateLimiterMySQL(config)
-      default:
-        throw UnsupportedDbException.invoke(connection.dialect.name)
     }
-  }
 
-  static #createDbConfig(
-    config: DatabaseLimiterConfig,
-    connection: QueryClientContract,
-    runtimeConfig?: RuntimeConfig
-  ) {
-    return {
-      storeType: 'knex',
-      tableCreated: true,
-      dbName: config.dbName,
-      tableName: config.tableName,
-      keyPrefix: config.keyPrefix,
-      storeClient: connection.getWriteClient(),
-      clearExpiredByTimeout: config.clearExpiredByTimeout,
-      inMemoryBlockOnConsumed: timeToSeconds(config.inMemoryBlockOnConsumed),
-      inMemoryBlockDuration: timeToSeconds(config.inMemoryBlockDuration),
-      ...(runtimeConfig && {
-        points: runtimeConfig.requests,
-        duration: timeToSeconds(runtimeConfig.duration),
-        blockDuration: timeToSeconds(runtimeConfig.blockDuration),
-      }),
+    switch (dialectName) {
+      case 'mysql':
+        super(
+          new RateLimiterMySQL({
+            storeType: 'knex',
+            storeClient: client.getWriteClient(),
+            tableCreated: true,
+            dbName: config.dbName,
+            tableName: config.tableName,
+            keyPrefix: config.keyPrefix,
+            execEvenly: config.execEvenly,
+            points: config.requests,
+            clearExpiredByTimeout: config.clearExpiredByTimeout,
+            duration: string.seconds.parse(config.duration),
+            inMemoryBlockOnConsumed: config.inMemoryBlockOnConsumed,
+            blockDuration: config.blockDuration
+              ? string.seconds.parse(config.blockDuration)
+              : undefined,
+            inMemoryBlockDuration: config.inMemoryBlockDuration
+              ? string.seconds.parse(config.inMemoryBlockDuration)
+              : undefined,
+          })
+        )
+        break
+      case 'postgres':
+        super(
+          new RateLimiterPostgres({
+            storeType: 'knex',
+            schemaName: config.schemaName,
+            storeClient: client.getWriteClient(),
+            tableCreated: true,
+            dbName: config.dbName,
+            tableName: config.tableName,
+            keyPrefix: config.keyPrefix,
+            execEvenly: config.execEvenly,
+            points: config.requests,
+            clearExpiredByTimeout: config.clearExpiredByTimeout,
+            duration: string.seconds.parse(config.duration),
+            inMemoryBlockOnConsumed: config.inMemoryBlockOnConsumed,
+            blockDuration: config.blockDuration
+              ? string.seconds.parse(config.blockDuration)
+              : undefined,
+            inMemoryBlockDuration: config.inMemoryBlockDuration
+              ? string.seconds.parse(config.inMemoryBlockDuration)
+              : undefined,
+          })
+        )
+        break
     }
   }
 }

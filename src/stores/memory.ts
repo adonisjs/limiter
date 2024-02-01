@@ -7,23 +7,27 @@
  * file that was distributed with this source code.
  */
 
+import string from '@adonisjs/core/helpers/string'
 import { RateLimiterMemory } from 'rate-limiter-flexible'
 
-import BaseLimiterStore from './base.js'
-import { timeToSeconds } from '../helpers.js'
+import RateLimiterBridge from './bridge.js'
+import type { LimiterMemoryStoreConfig } from '../types.js'
 
-import type { MemoryLimiterConfig, RuntimeConfig } from '../types.js'
-
-export default class MemoryLimiterStore extends BaseLimiterStore {
-  constructor(config: MemoryLimiterConfig, runtimeConfig?: RuntimeConfig) {
+/**
+ * Limiter memory store wraps the "RateLimiterMemory" implementation
+ * from the "rate-limiter-flixible" package.
+ */
+export default class LimiterMemoryStore extends RateLimiterBridge {
+  constructor(config: LimiterMemoryStoreConfig) {
     super(
       new RateLimiterMemory({
         keyPrefix: config.keyPrefix,
-        ...(runtimeConfig && {
-          points: runtimeConfig.requests,
-          duration: timeToSeconds(runtimeConfig.duration),
-          blockDuration: timeToSeconds(runtimeConfig.blockDuration),
-        }),
+        execEvenly: config.execEvenly,
+        points: config.requests,
+        duration: string.seconds.parse(config.duration),
+        blockDuration: config.blockDuration
+          ? string.seconds.parse(config.blockDuration)
+          : undefined,
       })
     )
   }
