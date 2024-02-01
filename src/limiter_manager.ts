@@ -8,10 +8,12 @@
  */
 
 import string from '@adonisjs/core/helpers/string'
+import type { HttpContext } from '@adonisjs/core/http'
 import { RuntimeException } from '@adonisjs/core/exceptions'
 
 import debug from './debug.js'
 import { Limiter } from './limiter.js'
+import { HttpLimiter } from './http_limiter.js'
 import type { LimiterConsumptionOptions, LimiterManagerStoreFactory } from './types.js'
 
 /**
@@ -104,5 +106,19 @@ export class LimiterManager<KnownStores extends Record<string, LimiterManagerSto
     debug('creating new limiter instance "%s", options %O', storeToUse, optionsToUse)
     this.#limiters.set(limiterKey, limiter)
     return limiter
+  }
+
+  /**
+   * Define a named HTTP limiter that can you use
+   * throttle HTTP requests.
+   */
+  define(
+    name: string,
+    builder: (ctx: HttpContext, httpLimiter: HttpLimiter<KnownStores>) => HttpLimiter<KnownStores>
+  ): (ctx: HttpContext) => HttpLimiter<KnownStores> {
+    return (ctx: HttpContext) => {
+      const limiter = new HttpLimiter(name, ctx, this)
+      return builder(ctx, limiter)
+    }
   }
 }

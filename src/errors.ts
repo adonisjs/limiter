@@ -17,7 +17,7 @@ import type { LimiterResponse } from './response.js'
  * Throttle exception is raised when the user has exceeded
  * the number of requests allowed during a given duration
  */
-class ThrottleException extends Exception {
+export class ThrottleException extends Exception {
   message = 'Too many requests'
   status = 429
   code = 'E_TOO_MANY_REQUESTS'
