@@ -18,6 +18,10 @@ import type { LimiterMemoryStoreConfig } from '../types.js'
  * from the "rate-limiter-flixible" package.
  */
 export default class LimiterMemoryStore extends RateLimiterBridge {
+  get name() {
+    return 'memory'
+  }
+
   constructor(config: LimiterMemoryStoreConfig) {
     super(
       new RateLimiterMemory({

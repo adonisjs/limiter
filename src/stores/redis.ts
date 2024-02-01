@@ -19,6 +19,10 @@ import type { LimiterRedisStoreConfig } from '../types.js'
  * from the "rate-limiter-flixible" package.
  */
 export default class LimiterRedisStore extends RateLimiterBridge {
+  get name() {
+    return 'redis'
+  }
+
   constructor(client: RedisConnection, config: LimiterRedisStoreConfig) {
     super(
       new RateLimiterRedis({

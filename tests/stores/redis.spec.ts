@@ -14,6 +14,20 @@ import { LimiterResponse } from '../../src/response.js'
 import { E_TOO_MANY_REQUESTS } from '../../src/errors.js'
 import LimiterRedisStore from '../../src/stores/redis.js'
 
+test.group('Limiter redis store | wrapper', () => {
+  test('define readonly properties', async ({ assert }) => {
+    const redis = createRedis(['rlflx:ip_localhost']).connection()
+    const store = new LimiterRedisStore(redis, {
+      duration: '1 minute',
+      requests: 5,
+    })
+
+    assert.equal(store.name, 'redis')
+    assert.equal(store.requests, 5)
+    assert.equal(store.duration, 60)
+  })
+})
+
 test.group('Limiter redis store | wrapper | consume', () => {
   test('consume points using the redis store', async ({ assert }) => {
     const redis = createRedis(['rlflx:ip_localhost']).connection()

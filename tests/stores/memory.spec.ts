@@ -12,6 +12,19 @@ import { LimiterResponse } from '../../src/response.js'
 import { E_TOO_MANY_REQUESTS } from '../../src/errors.js'
 import LimiterMemoryStore from '../../src/stores/memory.js'
 
+test.group('Limiter memory store | wrapper', () => {
+  test('define readonly properties', async ({ assert }) => {
+    const store = new LimiterMemoryStore({
+      duration: '1 minute',
+      requests: 5,
+    })
+
+    assert.equal(store.name, 'memory')
+    assert.equal(store.requests, 5)
+    assert.equal(store.duration, 60)
+  })
+})
+
 test.group('Limiter memory store | wrapper | consume', () => {
   test('consume points using the memory store', async ({ assert }) => {
     const store = new LimiterMemoryStore({

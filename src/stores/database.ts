@@ -20,6 +20,10 @@ import type { LimiterDatabaseStoreConfig } from '../types.js'
  * implementations from the "rate-limiter-flixible" package.
  */
 export default class LimiterDatabaseStore extends RateLimiterBridge {
+  get name() {
+    return 'database'
+  }
+
   constructor(client: QueryClientContract, config: LimiterDatabaseStoreConfig) {
     const dialectName = client.dialect.name
     if (dialectName !== 'mysql' && dialectName !== 'postgres') {

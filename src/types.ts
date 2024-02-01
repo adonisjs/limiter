@@ -157,6 +157,21 @@ export type LimiterDatabaseStoreConfig = LimiterStoreBaseConfig &
  */
 export interface LimiterStoreContract {
   /**
+   * A unique name for the store
+   */
+  readonly name: string
+
+  /**
+   * The number of configured requests on the store
+   */
+  readonly requests: number
+
+  /**
+   * The duration (in seconds) for which the requests are configured
+   */
+  readonly duration: number
+
+  /**
    * Consume 1 request for a given key. An exception is raised
    * when all the requests have already been consumed or if
    * the key is blocked.

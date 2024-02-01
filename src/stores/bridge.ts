@@ -28,6 +28,25 @@ import type { LimiterStoreContract } from '../types.js'
 export default abstract class RateLimiterBridge implements LimiterStoreContract {
   #rateLimiter: RateLimiterStoreAbstract | RateLimiterAbstract
 
+  /**
+   * A unique name for the store
+   */
+  abstract readonly name: string
+
+  /**
+   * The number of configured requests on the store
+   */
+  get requests() {
+    return this.#rateLimiter.points
+  }
+
+  /**
+   * The duration (in seconds) for which the requests are configured
+   */
+  get duration() {
+    return this.#rateLimiter.duration
+  }
+
   constructor(rateLimiter: RateLimiterStoreAbstract | RateLimiterAbstract) {
     this.#rateLimiter = rateLimiter
   }
@@ -100,7 +119,7 @@ export default abstract class RateLimiterBridge implements LimiterStoreContract 
      *
      * Therefore, we compute it locally
      */
-    const remaining = this.#rateLimiter.points - response.consumedPoints
+    const remaining = this.requests - response.consumedPoints
 
     return new LimiterResponse({
       limit: this.#rateLimiter.points,

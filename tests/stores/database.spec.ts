@@ -27,6 +27,22 @@ test.group('Limiter database store | wrapper', () => {
   }).throws(
     'Unsupported database "better-sqlite3". The limiter can only work with PostgreSQL and MySQL databases'
   )
+
+  test('define readonly properties', async ({ assert }) => {
+    const db = createDatabase()
+    await createTables(db)
+
+    const store = new LimiterDatabaseStore(db.connection(process.env.DB), {
+      dbName: 'limiter',
+      tableName: 'rate_limits',
+      duration: '1 minute',
+      requests: 5,
+    })
+
+    assert.equal(store.name, 'database')
+    assert.equal(store.requests, 5)
+    assert.equal(store.duration, 60)
+  })
 })
 
 test.group('Limiter database store | wrapper | consume', () => {
