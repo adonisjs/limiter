@@ -129,6 +129,13 @@ export class HttpLimiter<KnownStores extends Record<string, LimiterManagerStoreF
   }
 
   /**
+   * Returns null to disable rate limiting for the given request
+   */
+  noLimit() {
+    return null
+  }
+
+  /**
    * JSON representation of the http limiter
    */
   toJSON() {

@@ -114,8 +114,11 @@ export class LimiterManager<KnownStores extends Record<string, LimiterManagerSto
    */
   define(
     name: string,
-    builder: (ctx: HttpContext, httpLimiter: HttpLimiter<KnownStores>) => HttpLimiter<KnownStores>
-  ): (ctx: HttpContext) => HttpLimiter<KnownStores> {
+    builder: (
+      ctx: HttpContext,
+      httpLimiter: HttpLimiter<KnownStores>
+    ) => HttpLimiter<any> | null | Promise<HttpLimiter<any>> | Promise<null>
+  ): (ctx: HttpContext) => HttpLimiter<any> | null | Promise<HttpLimiter<any>> | Promise<null> {
     return (ctx: HttpContext) => {
       const limiter = new HttpLimiter(name, ctx, this)
       return builder(ctx, limiter)

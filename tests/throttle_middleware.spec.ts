@@ -60,7 +60,8 @@ test.group('Throttle middleware', () => {
     })
     const ctx = new HttpContextFactory().create()
 
-    await apiLimiter(ctx).throttle()
+    const limiter = await apiLimiter(ctx)
+    await limiter!.throttle()
 
     try {
       await new ThrottleMiddleware().handle(
@@ -78,6 +79,18 @@ test.group('Throttle middleware', () => {
 
   test('do not throttle request when no limiter is used', async ({ assert }) => {
     let nextCalled: boolean = false
+
+    const redis = createRedis(['rlflx:api_1']).connection()
+    const limiterManager = new LimiterManager({
+      default: 'redis',
+      stores: {
+        redis: (options) => new LimiterRedisStore(redis, options),
+      },
+    })
+
+    const apiLimiter = limiterManager.define('api', (_, limiter) => {
+      return limiter.noLimit()
+    })
     const ctx = new HttpContextFactory().create()
 
     await new ThrottleMiddleware().handle(
@@ -85,7 +98,7 @@ test.group('Throttle middleware', () => {
       () => {
         nextCalled = true
       },
-      () => null
+      apiLimiter
     )
     assert.isTrue(nextCalled)
   })
