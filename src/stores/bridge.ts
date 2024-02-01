@@ -14,10 +14,10 @@ import {
   type RateLimiterStoreAbstract,
 } from 'rate-limiter-flexible'
 
+import debug from '../debug.js'
 import { LimiterResponse } from '../response.js'
 import { E_TOO_MANY_REQUESTS } from '../errors.js'
 import type { LimiterStoreContract } from '../types.js'
-import debug from '../debug.js'
 
 /**
  * The bridget store acts as a bridge between the "rate-limiter-flexible"
