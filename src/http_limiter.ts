@@ -129,6 +129,17 @@ export class HttpLimiter<KnownStores extends Record<string, LimiterManagerStoreF
   }
 
   /**
+   * Define the block duration. The key will be blocked for the
+   * specified duration after all the requests have been
+   * exhausted
+   */
+  blockFor(duration: number | string): this {
+    this.#options = this.#options || {}
+    this.#options.blockDuration = duration
+    return this
+  }
+
+  /**
    * Returns null to disable rate limiting for the given request
    */
   noLimit() {
