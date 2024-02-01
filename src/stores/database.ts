@@ -12,6 +12,7 @@ import { RuntimeException } from '@poppinss/utils'
 import type { QueryClientContract } from '@adonisjs/lucid/types/database'
 import { RateLimiterMySQL, RateLimiterPostgres } from 'rate-limiter-flexible'
 
+import debug from '../debug.js'
 import RateLimiterBridge from './bridge.js'
 import type { LimiterDatabaseStoreConfig } from '../types.js'
 
@@ -31,6 +32,8 @@ export default class LimiterDatabaseStore extends RateLimiterBridge {
         `Unsupported database "${dialectName}". The limiter can only work with PostgreSQL and MySQL databases`
       )
     }
+
+    debug('creating %s limiter store %O', dialectName, config)
 
     switch (dialectName) {
       case 'mysql':

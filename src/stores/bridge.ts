@@ -17,6 +17,7 @@ import {
 import { LimiterResponse } from '../response.js'
 import { E_TOO_MANY_REQUESTS } from '../errors.js'
 import type { LimiterStoreContract } from '../types.js'
+import debug from '../debug.js'
 
 /**
  * The bridget store acts as a bridge between the "rate-limiter-flexible"
@@ -59,6 +60,7 @@ export default abstract class RateLimiterBridge implements LimiterStoreContract 
   async consume(key: string | number): Promise<LimiterResponse> {
     try {
       const response = await this.#rateLimiter.consume(key, 1)
+      debug('request consumed for key %s', key)
       return new LimiterResponse({
         limit: this.#rateLimiter.points,
         remaining: response.remainingPoints,
@@ -66,6 +68,7 @@ export default abstract class RateLimiterBridge implements LimiterStoreContract 
         availableIn: Math.ceil(response.msBeforeNext / 1000),
       })
     } catch (errorResponse: unknown) {
+      debug('unable to consume request for key %s, %O', key, errorResponse)
       if (errorResponse instanceof RateLimiterRes) {
         throw new E_TOO_MANY_REQUESTS(
           new LimiterResponse({
@@ -87,6 +90,7 @@ export default abstract class RateLimiterBridge implements LimiterStoreContract 
    */
   async block(key: string | number, duration: string | number): Promise<LimiterResponse> {
     const response = await this.#rateLimiter.block(key, string.seconds.parse(duration))
+    debug('blocked key %s', key)
     return new LimiterResponse({
       limit: this.#rateLimiter.points,
       remaining: response.remainingPoints,
@@ -111,6 +115,7 @@ export default abstract class RateLimiterBridge implements LimiterStoreContract 
     duration: string | number
   ): Promise<LimiterResponse> {
     const response = await this.#rateLimiter.set(key, requests, string.seconds.parse(duration))
+    debug('updated key %s with requests: %s, duration: %s', key, requests, duration)
 
     /**
      * The value of "response.remainingPoints" in a set method call
@@ -133,6 +138,7 @@ export default abstract class RateLimiterBridge implements LimiterStoreContract 
    * Delete a given key
    */
   delete(key: string | number): Promise<boolean> {
+    debug('deleting key %s', key)
     return this.#rateLimiter.delete(key)
   }
 
@@ -151,6 +157,7 @@ export default abstract class RateLimiterBridge implements LimiterStoreContract 
    */
   async get(key: string | number): Promise<LimiterResponse | null> {
     const response = await this.#rateLimiter.get(key)
+    debug('fetching key %s, %O', key, response)
     if (!response || Number.isNaN(response.remainingPoints)) {
       return null
     }

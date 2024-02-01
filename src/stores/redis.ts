@@ -11,6 +11,7 @@ import string from '@adonisjs/core/helpers/string'
 import type { RedisConnection } from '@adonisjs/redis'
 import { RateLimiterRedis } from 'rate-limiter-flexible'
 
+import debug from '../debug.js'
 import RateLimiterBridge from './bridge.js'
 import type { LimiterRedisStoreConfig } from '../types.js'
 
@@ -24,6 +25,7 @@ export default class LimiterRedisStore extends RateLimiterBridge {
   }
 
   constructor(client: RedisConnection, config: LimiterRedisStoreConfig) {
+    debug('creating redis limiter store %O', config)
     super(
       new RateLimiterRedis({
         rejectIfRedisNotReady: config.rejectIfRedisNotReady,

@@ -212,3 +212,11 @@ export interface LimiterStoreContract {
    */
   get(key: string | number): Promise<LimiterResponse | null>
 }
+
+/**
+ * The manager factory is used to create an instance of the
+ * store with consumption options
+ */
+export type LimiterManagerStoreFactory = (
+  options: LimiterConsumptionOptions
+) => LimiterStoreContract

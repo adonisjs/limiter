@@ -10,6 +10,7 @@
 import string from '@adonisjs/core/helpers/string'
 import { RateLimiterMemory } from 'rate-limiter-flexible'
 
+import debug from '../debug.js'
 import RateLimiterBridge from './bridge.js'
 import type { LimiterMemoryStoreConfig } from '../types.js'
 
@@ -23,6 +24,7 @@ export default class LimiterMemoryStore extends RateLimiterBridge {
   }
 
   constructor(config: LimiterMemoryStoreConfig) {
+    debug('creating memory limiter store %O', config)
     super(
       new RateLimiterMemory({
         keyPrefix: config.keyPrefix,
