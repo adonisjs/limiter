@@ -112,11 +112,11 @@
   },
   "publishConfig": {
     "access": "public",
-    "tag": "next"
+    "tag": "develop"
   },
   "np": {
     "message": "chore(release): %s",
-    "tag": "next",
+    "tag": "develop",
     "branch": "main",
     "anyBranch": false
   },
