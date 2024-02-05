@@ -25,14 +25,14 @@ const limiterConfig = defineConfig({
      * MYSQL or PostgreSQL database.
      */
     database: stores.database({
-      connectionName: 'local',
+      connectionName: 'main',
     }),
     {{/if}}
     /**
      * Memory store could be used during
      * testing
      */
-    memory: stores.memory()
+    memory: stores.memory({})
   },
 })
 

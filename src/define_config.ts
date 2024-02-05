@@ -12,7 +12,7 @@
 
 import { configProvider } from '@adonisjs/core'
 import type { ConfigProvider } from '@adonisjs/core/types'
-import type { RedisConnectionsList } from '@adonisjs/redis/types'
+import type { RedisConnections } from '@adonisjs/redis/types'
 import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 
 import debug from './debug.js'
@@ -116,7 +116,7 @@ export const stores: {
    */
   redis: (
     config: Omit<LimiterRedisStoreConfig, keyof LimiterConsumptionOptions> & {
-      connectionName: keyof RedisConnectionsList
+      connectionName: keyof RedisConnections
     }
   ) => ConfigProvider<LimiterManagerStoreFactory>
 

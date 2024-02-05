@@ -40,7 +40,7 @@ test.group('Limiter provider', () => {
             default: 'redis',
             stores: {
               redis: stores.redis({
-                connectionName: 'local',
+                connectionName: 'main',
               }),
             },
           }),

@@ -10,13 +10,19 @@
 import { join } from 'node:path'
 import { configDotenv } from 'dotenv'
 import { getActiveTest } from '@japa/runner'
-import { RedisManager } from '@adonisjs/redis'
 import { Emitter } from '@adonisjs/core/events'
 import { Database } from '@adonisjs/lucid/database'
 import { AppFactory } from '@adonisjs/core/factories/app'
+import { RedisConnection, RedisManager } from '@adonisjs/redis'
 import { LoggerFactory } from '@adonisjs/core/factories/logger'
 
 configDotenv()
+
+declare module '@adonisjs/redis/types' {
+  interface RedisConnections {
+    main: RedisConnection
+  }
+}
 
 /**
  * Creates an instance of the database class for making queries
