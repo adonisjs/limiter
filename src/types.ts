@@ -7,6 +7,8 @@
  * file that was distributed with this source code.
  */
 
+import { ConfigProvider } from '@adonisjs/core/types'
+import { LimiterManager } from './limiter_manager.js'
 import type { LimiterResponse } from './response.js'
 
 /**
@@ -220,3 +222,25 @@ export interface LimiterStoreContract {
 export type LimiterManagerStoreFactory = (
   options: LimiterConsumptionOptions
 ) => LimiterStoreContract
+
+/**
+ * A list of known limiters inferred from the user config
+ */
+export interface LimitersList {}
+
+/**
+ * Helper method to resolve configured limiters
+ * inside user app
+ */
+export type InferLimiters<
+  T extends ConfigProvider<{ stores: Record<string, LimiterManagerStoreFactory> }>,
+> = Awaited<ReturnType<T['resolver']>>['stores']
+
+/**
+ * Limiter service is a singleton instance of limiter
+ * manager configured using user app's config
+ */
+export interface LimiterService
+  extends LimiterManager<
+    LimitersList extends Record<string, LimiterManagerStoreFactory> ? LimitersList : never
+  > {}

@@ -5,22 +5,12 @@
   "main": "build/index.js",
   "type": "module",
   "files": [
-    "build/src",
-    "build/services",
-    "build/providers",
-    "build/commands",
-    "build/factories",
-    "build/stubs",
-    "build/configure.js",
-    "build/configure.d.ts",
-    "build/index.d.ts",
-    "build/index.js"
+    "build"
   ],
   "exports": {
     ".": "./build/index.js",
     "./limiter_provider": "./build/providers/limiter_provider.js",
     "./services/main": "./build/services/main.js",
-    "./throttle_middleware": "./build/src/throttle_middleware.js",
     "./types": "./build/src/types.js"
   },
   "scripts": {
