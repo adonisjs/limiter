@@ -136,7 +136,7 @@ export type LimiterDatabaseStoreConfig = LimiterStoreBaseConfig &
      * The database table to use for storing keys. Defaults
      * to "keyPrefix"
      */
-    tableName?: string
+    tableName: string
 
     /**
      * Define schema to use for making database queries.

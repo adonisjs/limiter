@@ -27,7 +27,7 @@ import type { LimiterStoreContract } from '../types.js'
  * must inherit your implementation from this class.
  */
 export default abstract class RateLimiterBridge implements LimiterStoreContract {
-  #rateLimiter: RateLimiterStoreAbstract | RateLimiterAbstract
+  protected rateLimiter: RateLimiterStoreAbstract | RateLimiterAbstract
 
   /**
    * A unique name for the store
@@ -38,19 +38,24 @@ export default abstract class RateLimiterBridge implements LimiterStoreContract 
    * The number of configured requests on the store
    */
   get requests() {
-    return this.#rateLimiter.points
+    return this.rateLimiter.points
   }
 
   /**
    * The duration (in seconds) for which the requests are configured
    */
   get duration() {
-    return this.#rateLimiter.duration
+    return this.rateLimiter.duration
   }
 
   constructor(rateLimiter: RateLimiterStoreAbstract | RateLimiterAbstract) {
-    this.#rateLimiter = rateLimiter
+    this.rateLimiter = rateLimiter
   }
+
+  /**
+   * Clear database
+   */
+  abstract clear(): Promise<void>
 
   /**
    * Consume 1 request for a given key. An exception is raised
@@ -59,10 +64,10 @@ export default abstract class RateLimiterBridge implements LimiterStoreContract 
    */
   async consume(key: string | number): Promise<LimiterResponse> {
     try {
-      const response = await this.#rateLimiter.consume(key, 1)
+      const response = await this.rateLimiter.consume(key, 1)
       debug('request consumed for key %s', key)
       return new LimiterResponse({
-        limit: this.#rateLimiter.points,
+        limit: this.rateLimiter.points,
         remaining: response.remainingPoints,
         consumed: response.consumedPoints,
         availableIn: Math.ceil(response.msBeforeNext / 1000),
@@ -72,7 +77,7 @@ export default abstract class RateLimiterBridge implements LimiterStoreContract 
       if (errorResponse instanceof RateLimiterRes) {
         throw new E_TOO_MANY_REQUESTS(
           new LimiterResponse({
-            limit: this.#rateLimiter.points,
+            limit: this.rateLimiter.points,
             remaining: errorResponse.remainingPoints,
             consumed: errorResponse.consumedPoints,
             availableIn: Math.ceil(errorResponse.msBeforeNext / 1000),
@@ -89,10 +94,10 @@ export default abstract class RateLimiterBridge implements LimiterStoreContract 
    * a value in seconds or a string expression.
    */
   async block(key: string | number, duration: string | number): Promise<LimiterResponse> {
-    const response = await this.#rateLimiter.block(key, string.seconds.parse(duration))
+    const response = await this.rateLimiter.block(key, string.seconds.parse(duration))
     debug('blocked key %s', key)
     return new LimiterResponse({
-      limit: this.#rateLimiter.points,
+      limit: this.rateLimiter.points,
       remaining: response.remainingPoints,
       consumed: response.consumedPoints,
       availableIn: Math.ceil(response.msBeforeNext / 1000),
@@ -114,7 +119,7 @@ export default abstract class RateLimiterBridge implements LimiterStoreContract 
     requests: number,
     duration: string | number
   ): Promise<LimiterResponse> {
-    const response = await this.#rateLimiter.set(key, requests, string.seconds.parse(duration))
+    const response = await this.rateLimiter.set(key, requests, string.seconds.parse(duration))
     debug('updated key %s with requests: %s, duration: %s', key, requests, duration)
 
     /**
@@ -127,7 +132,7 @@ export default abstract class RateLimiterBridge implements LimiterStoreContract 
     const remaining = this.requests - response.consumedPoints
 
     return new LimiterResponse({
-      limit: this.#rateLimiter.points,
+      limit: this.rateLimiter.points,
       remaining: remaining < 0 ? 0 : remaining,
       consumed: response.consumedPoints,
       availableIn: Math.ceil(response.msBeforeNext / 1000),
@@ -139,15 +144,15 @@ export default abstract class RateLimiterBridge implements LimiterStoreContract 
    */
   delete(key: string | number): Promise<boolean> {
     debug('deleting key %s', key)
-    return this.#rateLimiter.delete(key)
+    return this.rateLimiter.delete(key)
   }
 
   /**
    * Delete all keys blocked within the memory
    */
   deleteInMemoryBlockedKeys(): void {
-    if ('deleteInMemoryBlockedAll' in this.#rateLimiter) {
-      return this.#rateLimiter.deleteInMemoryBlockedAll()
+    if ('deleteInMemoryBlockedAll' in this.rateLimiter) {
+      return this.rateLimiter.deleteInMemoryBlockedAll()
     }
   }
 
@@ -156,14 +161,14 @@ export default abstract class RateLimiterBridge implements LimiterStoreContract 
    * key doesn't exist.
    */
   async get(key: string | number): Promise<LimiterResponse | null> {
-    const response = await this.#rateLimiter.get(key)
+    const response = await this.rateLimiter.get(key)
     debug('fetching key %s, %O', key, response)
     if (!response || Number.isNaN(response.remainingPoints)) {
       return null
     }
 
     return new LimiterResponse({
-      limit: this.#rateLimiter.points,
+      limit: this.rateLimiter.points,
       remaining: response.remainingPoints,
       consumed: response.consumedPoints,
       availableIn: Math.ceil(response.msBeforeNext / 1000),

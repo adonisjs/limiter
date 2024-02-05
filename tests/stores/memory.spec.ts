@@ -226,3 +226,19 @@ test.group('Limiter memory store | wrapper | delete', () => {
     await assert.doesNotReject(() => store.consume('ip_localhost'))
   })
 })
+
+test.group('Limiter memory store | wrapper | clear', () => {
+  test('clear db', async ({ assert }) => {
+    const store = new LimiterMemoryStore({
+      duration: '1 minute',
+      requests: 5,
+    })
+
+    await store.consume('ip_localhost')
+    const response = await store.get('ip_localhost')
+    assert.instanceOf(response, LimiterResponse)
+
+    await store.clear()
+    assert.isNull(await store.get('ip_localhost'))
+  })
+})

@@ -21,6 +21,9 @@ import type { LimiterDatabaseStoreConfig } from '../types.js'
  * implementations from the "rate-limiter-flixible" package.
  */
 export default class LimiterDatabaseStore extends RateLimiterBridge {
+  #config: LimiterDatabaseStoreConfig
+  #client: QueryClientContract
+
   get name() {
     return 'database'
   }
@@ -58,6 +61,8 @@ export default class LimiterDatabaseStore extends RateLimiterBridge {
               : undefined,
           })
         )
+        this.#client = client
+        this.#config = config
         break
       case 'postgres':
         super(
@@ -82,7 +87,19 @@ export default class LimiterDatabaseStore extends RateLimiterBridge {
               : undefined,
           })
         )
+        this.#client = client
+        this.#config = config
         break
     }
+  }
+
+  /**
+   * Deletes all rows from the database table. Make sure to
+   * use separate database tables for every rate limiter
+   * your configure.
+   */
+  async clear() {
+    debug('truncating database table %s', this.#config.tableName)
+    await this.#client.dialect.truncate(this.#config.tableName, true)
   }
 }

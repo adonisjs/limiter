@@ -378,3 +378,24 @@ test.group('Limiter database store | wrapper | delete', () => {
     await assert.doesNotReject(() => store.consume('ip_localhost'))
   })
 })
+
+test.group('Limiter database store | wrapper | clear', () => {
+  test('clear db', async ({ assert }) => {
+    const db = createDatabase()
+    await createTables(db)
+
+    const store = new LimiterDatabaseStore(db.connection(process.env.DB), {
+      dbName: 'limiter',
+      tableName: 'rate_limits',
+      duration: '1 minute',
+      requests: 5,
+    })
+
+    await store.consume('ip_localhost')
+    const response = await store.get('ip_localhost')
+    assert.instanceOf(response, LimiterResponse)
+
+    await store.clear()
+    assert.isNull(await store.get('ip_localhost'))
+  })
+})

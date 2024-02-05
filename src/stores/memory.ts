@@ -19,6 +19,8 @@ import type { LimiterMemoryStoreConfig } from '../types.js'
  * from the "rate-limiter-flixible" package.
  */
 export default class LimiterMemoryStore extends RateLimiterBridge {
+  #config: LimiterMemoryStoreConfig
+
   get name() {
     return 'memory'
   }
@@ -36,5 +38,24 @@ export default class LimiterMemoryStore extends RateLimiterBridge {
           : undefined,
       })
     )
+
+    this.#config = config
+  }
+
+  /**
+   * Clears the existing memory store to reset
+   * rate limits
+   */
+  async clear() {
+    debug('clearing memory store')
+    this.rateLimiter = new RateLimiterMemory({
+      keyPrefix: this.#config.keyPrefix,
+      execEvenly: this.#config.execEvenly,
+      points: this.#config.requests,
+      duration: string.seconds.parse(this.#config.duration),
+      blockDuration: this.#config.blockDuration
+        ? string.seconds.parse(this.#config.blockDuration)
+        : undefined,
+    })
   }
 }
