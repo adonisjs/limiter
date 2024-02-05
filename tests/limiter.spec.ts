@@ -210,4 +210,32 @@ test.group('Limiter', () => {
 
     assert.equal(await limiter.remaining('ip_localhost'), 1)
   })
+
+  test('throw error via penalize when all requests has been exhausted', async ({ assert }) => {
+    const redis = createRedis(['rlflx:ip_localhost']).connection()
+    const store = new LimiterRedisStore(redis, {
+      duration: '1 minute',
+      requests: 2,
+    })
+
+    const limiter = new Limiter(store)
+
+    await assert.rejects(async () => {
+      await limiter.penalize('ip_localhost', () => {
+        throw new Error('Something went wrong')
+      })
+    }, 'Something went wrong')
+    await assert.rejects(async () => {
+      await limiter.penalize('ip_localhost', () => {
+        throw new Error('Something went wrong')
+      })
+    }, 'Something went wrong')
+    await assert.rejects(async () => {
+      await limiter.penalize('ip_localhost', () => {
+        throw new Error('Something went wrong')
+      })
+    }, 'Too many requests')
+
+    assert.equal(await limiter.remaining('ip_localhost'), 0)
+  })
 })

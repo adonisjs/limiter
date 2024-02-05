@@ -84,9 +84,21 @@ export class Limiter implements LimiterStoreContract {
 
   /**
    * Consume 1 request for a given key when the executed method throws
-   * an error
+   * an error.
+   *
+   * The method will throw an exception when all requests
+   * have been exhausted.
    */
   async penalize<T>(key: string | number, callback: () => T | Promise<T>): Promise<T> {
+    const response = await this.get(key)
+
+    /**
+     * Abort when user has exhausted all the requests
+     */
+    if (response && response.remaining <= 0) {
+      throw new E_TOO_MANY_REQUESTS(response)
+    }
+
     try {
       const result = await callback()
       return result
