@@ -71,7 +71,7 @@ export class Limiter implements LimiterStoreContract {
    * Consume 1 request for a given key and execute the provided
    * callback.
    */
-  async attempt<T>(key: string | number, callback: () => T | Promise<T>): Promise<T | false> {
+  async attempt<T>(key: string | number, callback: () => T | Promise<T>): Promise<T | undefined> {
     try {
       await this.consume(key)
       return callback()
@@ -79,7 +79,20 @@ export class Limiter implements LimiterStoreContract {
       if (error instanceof E_TOO_MANY_REQUESTS === false) {
         throw error
       }
-      return false
+    }
+  }
+
+  /**
+   * Consume 1 request for a given key when the executed method throws
+   * an error
+   */
+  async penalize<T>(key: string | number, callback: () => T | Promise<T>): Promise<T> {
+    try {
+      const result = await callback()
+      return result
+    } catch (error) {
+      await this.increment(key)
+      throw error
     }
   }
 

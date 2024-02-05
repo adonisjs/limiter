@@ -186,4 +186,28 @@ test.group('Limiter', () => {
     await limiter.increment('ip_localhost')
     assert.isTrue(await limiter.isBlocked('ip_localhost'))
   })
+
+  test('consume point when the provided callback throws exception', async ({ assert }) => {
+    const redis = createRedis(['rlflx:ip_localhost']).connection()
+    const store = new LimiterRedisStore(redis, {
+      duration: '1 minute',
+      requests: 2,
+    })
+
+    const limiter = new Limiter(store)
+
+    await assert.rejects(async () => {
+      await limiter.penalize('ip_localhost', () => {
+        throw new Error('Something went wrong')
+      })
+    }, 'Something went wrong')
+
+    assert.isTrue(
+      await limiter.penalize('ip_localhost', () => {
+        return true
+      })
+    )
+
+    assert.equal(await limiter.remaining('ip_localhost'), 1)
+  })
 })
