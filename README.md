@@ -6,11 +6,11 @@
 
 ## Introduction
 
-AdonisJS Limiter is built on top of [node-rate-limiter-flexible](https://github.com/animir/node-rate-limiter-flexible) with a more intutive API for creating multiple limiters at runtime.
+A first-party package to implement rate limits in your AdonisJS application. The package is built on top of [node-rate-limiter-flexible](https://github.com/animir/node-rate-limiter-flexible) with extensive changes to the API.
 
 ## Official Documentation
 
-The documentation is available on the [AdonisJS website](https://docs.adonisjs.com/guides/rate-limiting)
+The documentation is available on the [AdonisJS website](https://docs.adonisjs.com/guides/rate-limiter)
 
 ## Contributing
 
