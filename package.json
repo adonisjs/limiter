@@ -5,12 +5,15 @@
   "main": "build/index.js",
   "type": "module",
   "files": [
-    "build"
+    "build",
+    "!build/bin",
+    "!build/tests"
   ],
   "exports": {
     ".": "./build/index.js",
     "./limiter_provider": "./build/providers/limiter_provider.js",
     "./services/main": "./build/services/main.js",
+    "./stores/*": "./build/src/stores/*.js",
     "./types": "./build/src/types.js"
   },
   "scripts": {
@@ -22,7 +25,7 @@
     "typecheck": "tsc --noEmit",
     "copy:templates": "copyfiles \"stubs/**/*.stub\" --up=\"1\" build",
     "precompile": "npm run lint && npm run clean",
-    "compile": "tsup-node && tsc --emitDeclarationOnly --declaration && npm run index:commands",
+    "compile": "tsup-node && tsc --emitDeclarationOnly --declaration",
     "postcompile": "npm run copy:templates",
     "build": "npm run compile",
     "prepublishOnly": "npm run build",
@@ -31,8 +34,7 @@
     "release": "np",
     "version": "npm run build",
     "sync-labels": "github-label-sync --labels .github/labels.json adonisjs/session",
-    "quick:test": "cross-env NODE_DEBUG=adonisjs:limiter node --enable-source-maps --loader=ts-node/esm bin/test.ts",
-    "index:commands": "adonis-kit index build/commands"
+    "quick:test": "cross-env NODE_DEBUG=adonisjs:limiter node --enable-source-maps --loader=ts-node/esm bin/test.ts"
   },
   "devDependencies": {
     "@adonisjs/assembler": "^7.1.1",
@@ -66,6 +68,7 @@
     "prettier": "^3.0.0",
     "sinon": "^17.0.1",
     "ts-node": "^10.9.1",
+    "tsup": "^8.0.1",
     "typescript": "^5.1.6"
   },
   "dependencies": {
@@ -125,5 +128,20 @@
     "exclude": [
       "tests/**"
     ]
+  },
+  "tsup": {
+    "entry": [
+      "./index.ts",
+      "./providers/limiter_provider.ts",
+      "./services/main.ts",
+      "./src/stores/*.ts",
+      "./src/types.ts"
+    ],
+    "outDir": "./build",
+    "clean": true,
+    "format": "esm",
+    "dts": false,
+    "sourcemap": true,
+    "target": "esnext"
   }
 }
