@@ -23,18 +23,6 @@ import type { LimiterConsumptionOptions, LimiterManagerStoreFactory } from './ty
  */
 export class HttpLimiter<KnownStores extends Record<string, LimiterManagerStoreFactory>> {
   /**
-   * A unique name to prefix keys for the given
-   * HTTP limiter
-   */
-  #name: string
-
-  /**
-   * Reference to the HTTP context for which the Limiter
-   * instance was created
-   */
-  #ctx: HttpContext
-
-  /**
    * The manager reference to create limiter instances
    * for a given store
    */
@@ -62,23 +50,9 @@ export class HttpLimiter<KnownStores extends Record<string, LimiterManagerStoreF
    */
   #exceptionModifier: (error: ThrottleException) => void = () => {}
 
-  constructor(
-    name: string,
-    ctx: HttpContext,
-    manager: LimiterManager<KnownStores>,
-    options?: LimiterConsumptionOptions
-  ) {
-    this.#name = name
-    this.#ctx = ctx
+  constructor(manager: LimiterManager<KnownStores>, options?: LimiterConsumptionOptions) {
     this.#manager = manager
     this.#options = options
-  }
-
-  /**
-   * Creates the key for the HTTP request
-   */
-  protected createKey() {
-    return `${this.#name}_${this.#key || this.#ctx.request.ip()}`
   }
 
   /**
@@ -140,18 +114,10 @@ export class HttpLimiter<KnownStores extends Record<string, LimiterManagerStoreF
   }
 
   /**
-   * Returns null to disable rate limiting for the given request
-   */
-  noLimit() {
-    return null
-  }
-
-  /**
-   * JSON representation of the http limiter
+   * JSON representation of the HTTP limiter
    */
   toJSON() {
     return {
-      key: this.createKey(),
       store: this.#store,
       ...this.#options,
     }
@@ -162,10 +128,10 @@ export class HttpLimiter<KnownStores extends Record<string, LimiterManagerStoreF
    * LimiterResponse when request is allowed or throws
    * an exception.
    */
-  async throttle(): Promise<LimiterResponse> {
+  async throttle(prefix: string, ctx: HttpContext): Promise<LimiterResponse> {
     if (!this.#options || !this.#options.requests || !this.#options.duration) {
       throw new RuntimeException(
-        `Cannot throttle requests for "${this.#name}" limiter. Make sure to define the allowed requests and duration`
+        `Cannot throttle requests for "${prefix}" limiter. Make sure to define the allowed requests and duration`
       )
     }
 
@@ -173,7 +139,7 @@ export class HttpLimiter<KnownStores extends Record<string, LimiterManagerStoreF
       ? this.#manager.use(this.#store, this.#options as LimiterConsumptionOptions)
       : this.#manager.use(this.#options as LimiterConsumptionOptions)
 
-    const key = this.createKey()
+    const key = `${prefix}_${this.#key || ctx.request.ip()}`
     debug('throttling HTTP request for key "%s"', key)
     const limiterResponse = await limiter.get(key)
 

@@ -30,13 +30,12 @@ test.group('Http limiter', () => {
       return 'localhost'
     }
 
-    const limiter = new HttpLimiter('api', ctx, limiterManager)
+    const limiter = new HttpLimiter(limiterManager)
     limiter.allowRequests(10).every('1 minute').blockFor('20 mins')
 
     assert.instanceOf(limiter, HttpLimiter)
     assert.deepEqual(limiter!.toJSON(), {
       duration: '1 minute',
-      key: `api_localhost`,
       requests: 10,
       blockDuration: '20 mins',
       store: undefined,
@@ -52,14 +51,12 @@ test.group('Http limiter', () => {
       },
     })
 
-    const ctx = new HttpContextFactory().create()
-    const limiter = new HttpLimiter('api', ctx, limiterManager)
+    const limiter = new HttpLimiter(limiterManager)
     limiter.allowRequests(10).every('1 minute').usingKey(1)
 
     assert.instanceOf(limiter, HttpLimiter)
     assert.deepEqual(limiter!.toJSON(), {
       duration: '1 minute',
-      key: `api_1`,
       requests: 10,
       store: undefined,
     })
@@ -74,14 +71,12 @@ test.group('Http limiter', () => {
       },
     })
 
-    const ctx = new HttpContextFactory().create()
-    const limiter = new HttpLimiter('api', ctx, limiterManager)
+    const limiter = new HttpLimiter(limiterManager)
     limiter.allowRequests(10).every('1 minute').usingKey(1).store('redis')
 
     assert.instanceOf(limiter, HttpLimiter)
     assert.deepEqual(limiter!.toJSON(), {
       duration: '1 minute',
-      key: `api_1`,
       requests: 10,
       store: 'redis',
     })
@@ -97,11 +92,11 @@ test.group('Http limiter', () => {
     })
 
     const ctx = new HttpContextFactory().create()
-    const limiter = new HttpLimiter('api', ctx, limiterManager)
+    const limiter = new HttpLimiter(limiterManager)
     limiter.allowRequests(1).every('1 minute').usingKey(1)
 
-    await assert.doesNotReject(() => limiter.throttle())
-    await assert.rejects(() => limiter.throttle())
+    await assert.doesNotReject(() => limiter.throttle('api', ctx))
+    await assert.rejects(() => limiter.throttle('api', ctx))
   })
 
   test('customize exception', async ({ assert }) => {
@@ -116,7 +111,7 @@ test.group('Http limiter', () => {
     })
 
     const ctx = new HttpContextFactory().create()
-    const limiter = new HttpLimiter('api', ctx, limiterManager)
+    const limiter = new HttpLimiter(limiterManager)
     limiter
       .allowRequests(1)
       .every('1 minute')
@@ -125,9 +120,9 @@ test.group('Http limiter', () => {
         error.setMessage('Requests exhaused').setStatus(400)
       })
 
-    await limiter.throttle()
+    await limiter.throttle('api', ctx)
     try {
-      await limiter.throttle()
+      await limiter.throttle('api', ctx)
     } catch (error) {
       assert.equal(error.message, 'Requests exhaused')
       assert.equal(error.status, 400)
@@ -144,7 +139,7 @@ test.group('Http limiter', () => {
     })
 
     const ctx = new HttpContextFactory().create()
-    const limiter = new HttpLimiter('api', ctx, limiterManager)
+    const limiter = new HttpLimiter(limiterManager)
     limiter
       .allowRequests(1)
       .every('1 minute')
@@ -154,7 +149,10 @@ test.group('Http limiter', () => {
         error.setMessage('Requests exhaused').setStatus(400)
       })
 
-    const [first, second] = await Promise.allSettled([limiter!.throttle(), limiter!.throttle()])
+    const [first, second] = await Promise.allSettled([
+      limiter!.throttle('api', ctx),
+      limiter!.throttle('api', ctx),
+    ])
     assert.equal(first.status, 'fulfilled')
     assert.equal(second.status, 'rejected')
   })
@@ -170,24 +168,24 @@ test.group('Http limiter', () => {
 
     const ctx = new HttpContextFactory().create()
 
-    const noRequests = new HttpLimiter('api', ctx, limiterManager)
+    const noRequests = new HttpLimiter(limiterManager)
     noRequests.every('1 minute').usingKey(1)
 
-    const noDuration = new HttpLimiter('api', ctx, limiterManager)
+    const noDuration = new HttpLimiter(limiterManager)
     noDuration.allowRequests(100).usingKey(1)
 
-    const noConfig = new HttpLimiter('api', ctx, limiterManager)
+    const noConfig = new HttpLimiter(limiterManager)
 
     await assert.rejects(
-      async () => noRequests.throttle(),
+      async () => noRequests.throttle('api', ctx),
       'Cannot throttle requests for "api" limiter. Make sure to define the allowed requests and duration'
     )
     await assert.rejects(
-      async () => noDuration.throttle(),
+      async () => noDuration.throttle('api', ctx),
       'Cannot throttle requests for "api" limiter. Make sure to define the allowed requests and duration'
     )
     await assert.rejects(
-      async () => noConfig.throttle(),
+      async () => noConfig.throttle('api', ctx),
       'Cannot throttle requests for "api" limiter. Make sure to define the allowed requests and duration'
     )
   })

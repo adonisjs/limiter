@@ -152,14 +152,28 @@ export class LimiterManager<KnownStores extends Record<string, LimiterManagerSto
   }
 
   /**
+   * Creates HTTP limiter instance
+   */
+  allowRequests(requests: number) {
+    return new HttpLimiter(this).allowRequests(requests)
+  }
+
+  /**
+   * A shorthand method that returns null to disable
+   * rate limiting
+   */
+  noLimit() {
+    return null
+  }
+
+  /**
    * Define a named HTTP middleware to apply rate
    * limits on specific routes
    */
   define(
     name: string,
     builder: (
-      ctx: HttpContext,
-      httpLimiter: HttpLimiter<KnownStores>
+      ctx: HttpContext
     ) => HttpLimiter<any> | null | Promise<HttpLimiter<any>> | Promise<null>
   ): MiddlewareFn {
     const middlewareFn: MiddlewareFn = async (ctx, next) => {
@@ -168,7 +182,7 @@ export class LimiterManager<KnownStores extends Record<string, LimiterManagerSto
        * the return value to decide how to apply the rate
        * limit on the request
        */
-      const limiter = await builder(ctx, new HttpLimiter(name, ctx, this))
+      const limiter = await builder(ctx)
 
       /**
        * Do not throttle when no limiter is used for
@@ -181,7 +195,7 @@ export class LimiterManager<KnownStores extends Record<string, LimiterManagerSto
       /**
        * Throttle request using the HTTP limiter
        */
-      const limiterResponse = await limiter.throttle()
+      const limiterResponse = await limiter.throttle(name, ctx)
 
       /**
        * Invoke rest of the pipeline

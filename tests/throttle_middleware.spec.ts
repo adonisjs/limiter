@@ -26,9 +26,10 @@ test.group('Throttle middleware', () => {
       },
     })
 
-    const apiLimiter = limiterManager.define('api', (_, limiter) => {
-      return limiter.allowRequests(1).every('1 minute').usingKey(1)
+    const apiLimiter = limiterManager.define('api', () => {
+      return limiterManager.allowRequests(1).every('1 minute').usingKey(1)
     })
+    assert.equal(apiLimiter.name, 'apiThrottle')
 
     const ctx = new HttpContextFactory().create()
     await apiLimiter(ctx, () => {
@@ -50,8 +51,8 @@ test.group('Throttle middleware', () => {
       },
     })
 
-    const apiLimiter = limiterManager.define('api', (_, limiter) => {
-      return limiter.allowRequests(1).every('1 minute').usingKey(1)
+    const apiLimiter = limiterManager.define('api', () => {
+      return limiterManager.allowRequests(1).every('1 minute').usingKey(1)
     })
 
     /**
@@ -83,8 +84,8 @@ test.group('Throttle middleware', () => {
       },
     })
 
-    const apiLimiter = limiterManager.define('api', (_, limiter) => {
-      return limiter.noLimit()
+    const apiLimiter = limiterManager.define('api', () => {
+      return limiterManager.noLimit()
     })
     const ctx = new HttpContextFactory().create()
 
