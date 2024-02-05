@@ -194,6 +194,24 @@ test.group('Limiter database store | wrapper | consume', () => {
     const freshResponse = await store.get('ip_localhost')
     assert.equal(freshResponse!.consumed, 4)
   })
+
+  test('throw error when no database table does not exists', async ({ assert }) => {
+    const db = createDatabase()
+    await createTables(db)
+
+    const store = new LimiterDatabaseStore(db.connection(process.env.DB), {
+      dbName: 'limiter',
+      tableName: 'foo',
+      duration: '1 minute',
+      requests: 1,
+    })
+
+    try {
+      await store.consume('ip_localhost')
+    } catch (error) {
+      assert.match(error.message, /relation "foo" does not exist|Table 'limiter.foo' doesn't exist/)
+    }
+  })
 })
 
 test.group('Limiter database store | wrapper | get', () => {

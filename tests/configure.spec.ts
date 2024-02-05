@@ -46,7 +46,11 @@ test.group('Configure', (group) => {
     await fs.create('adonisrc.ts', `export default defineConfig({})`)
 
     const ace = await app.container.make('ace')
-    ace.prompt.trap('Select the storage layer you want to use').chooseOption(1)
+    ace.prompt
+      .trap('Select the storage layer you want to use')
+      .assertFails('', 'Please select a store')
+      .assertPasses('redis')
+      .chooseOption(1)
 
     const command = await ace.create(Configure, ['../index.js'])
     await command.exec()

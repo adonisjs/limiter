@@ -32,7 +32,7 @@ export class HttpLimiter<KnownStores extends Record<string, LimiterManagerStoreF
    * The runtime options configured using the fluent
    * API
    */
-  #options?: Partial<LimiterConsumptionOptions>
+  #options: Partial<LimiterConsumptionOptions>
 
   /**
    * The selected store. Otherwise the default store will
@@ -52,7 +52,7 @@ export class HttpLimiter<KnownStores extends Record<string, LimiterManagerStoreF
 
   constructor(manager: LimiterManager<KnownStores>, options?: LimiterConsumptionOptions) {
     this.#manager = manager
-    this.#options = options
+    this.#options = options || {}
   }
 
   /**
@@ -68,7 +68,6 @@ export class HttpLimiter<KnownStores extends Record<string, LimiterManagerStoreF
    * Specify the number of requests to allow
    */
   allowRequests(requests: number) {
-    this.#options = this.#options || {}
     this.#options.requests = requests
     return this
   }
@@ -80,7 +79,6 @@ export class HttpLimiter<KnownStores extends Record<string, LimiterManagerStoreF
    * For example: allowRequests(10).every('1 minute')
    */
   every(duration: number | string) {
-    this.#options = this.#options || {}
     this.#options.duration = duration
     return this
   }
@@ -108,7 +106,6 @@ export class HttpLimiter<KnownStores extends Record<string, LimiterManagerStoreF
    * exhausted
    */
   blockFor(duration: number | string): this {
-    this.#options = this.#options || {}
     this.#options.blockDuration = duration
     return this
   }
@@ -129,7 +126,7 @@ export class HttpLimiter<KnownStores extends Record<string, LimiterManagerStoreF
    * an exception.
    */
   async throttle(prefix: string, ctx: HttpContext): Promise<LimiterResponse> {
-    if (!this.#options || !this.#options.requests || !this.#options.duration) {
+    if (!this.#options.requests || !this.#options.duration) {
       throw new RuntimeException(
         `Cannot throttle requests for "${prefix}" limiter. Make sure to define the allowed requests and duration`
       )

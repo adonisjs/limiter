@@ -8,7 +8,7 @@
  */
 
 import string from '@adonisjs/core/helpers/string'
-import { RateLimiterMemory } from 'rate-limiter-flexible'
+import { type IRateLimiterOptions, RateLimiterMemory } from 'rate-limiter-flexible'
 
 import debug from '../debug.js'
 import RateLimiterBridge from './bridge.js'
@@ -19,7 +19,7 @@ import type { LimiterMemoryStoreConfig } from '../types.js'
  * from the "rate-limiter-flixible" package.
  */
 export default class LimiterMemoryStore extends RateLimiterBridge {
-  #config: LimiterMemoryStoreConfig
+  #config: IRateLimiterOptions
 
   get name() {
     return 'memory'
@@ -27,19 +27,16 @@ export default class LimiterMemoryStore extends RateLimiterBridge {
 
   constructor(config: LimiterMemoryStoreConfig) {
     debug('creating memory limiter store %O', config)
-    super(
-      new RateLimiterMemory({
-        keyPrefix: config.keyPrefix,
-        execEvenly: config.execEvenly,
-        points: config.requests,
-        duration: string.seconds.parse(config.duration),
-        blockDuration: config.blockDuration
-          ? string.seconds.parse(config.blockDuration)
-          : undefined,
-      })
-    )
+    const resolvedConfig = {
+      keyPrefix: config.keyPrefix,
+      execEvenly: config.execEvenly,
+      points: config.requests,
+      duration: string.seconds.parse(config.duration),
+      blockDuration: config.blockDuration ? string.seconds.parse(config.blockDuration) : undefined,
+    }
 
-    this.#config = config
+    super(new RateLimiterMemory(resolvedConfig))
+    this.#config = resolvedConfig
   }
 
   /**
@@ -48,14 +45,6 @@ export default class LimiterMemoryStore extends RateLimiterBridge {
    */
   async clear() {
     debug('clearing memory store')
-    this.rateLimiter = new RateLimiterMemory({
-      keyPrefix: this.#config.keyPrefix,
-      execEvenly: this.#config.execEvenly,
-      points: this.#config.requests,
-      duration: string.seconds.parse(this.#config.duration),
-      blockDuration: this.#config.blockDuration
-        ? string.seconds.parse(this.#config.blockDuration)
-        : undefined,
-    })
+    this.rateLimiter = new RateLimiterMemory(this.#config)
   }
 }
