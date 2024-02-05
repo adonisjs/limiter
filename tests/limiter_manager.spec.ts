@@ -1,212 +1,159 @@
 /*
  * @adonisjs/limiter
  *
- * (c) Harminder Virk
+ * (c) AdonisJS
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
 
 import { test } from '@japa/runner'
-import { LimiterManager } from '../src/limiter_manager'
-import { setup, cleanup, application, resolve, migrate, rollback } from '../test_helpers'
 
-test.group('Limiter manager', (group) => {
-  group.each.setup(async () => {
-    await setup()
-    return () => cleanup()
-  })
+import { createRedis } from './helpers.js'
+import { Limiter } from '../src/limiter.js'
+import LimiterRedisStore from '../src/stores/redis.js'
+import { LimiterManager } from '../src/limiter_manager.js'
+import LimiterMemoryStore from '../src/stores/memory.js'
 
-  group.each.setup(() => {
-    return () => resolve('Adonis/Addons/Redis').del('adonis_limiter:user_id_1')
-  })
-
-  group.each.setup(async () => {
-    await migrate('pg')
-    return () => rollback('pg')
-  })
-
-  group.each.setup(async () => {
-    await migrate('mysql')
-    return () => rollback('mysql')
-  })
-
-  test('create an instance of redis store', async ({ assert }) => {
-    const manager = new LimiterManager(
-      application,
-      {
-        default: 'redis',
-        stores: {
-          redis: {
-            client: 'redis',
-            connectionName: 'local',
-          } as const,
-        },
+test.group('Limiter manager', () => {
+  test('create limiter instances using manager', async ({ assert }) => {
+    const redis = createRedis(['rlflx:ip_localhost']).connection()
+    const limiterManager = new LimiterManager({
+      default: 'redis',
+      stores: {
+        redis: (options) => new LimiterRedisStore(redis, options),
       },
-      {}
-    )
-
-    const limiter = manager.use({ duration: '1 sec', requests: 5 })
-    await limiter.consume('user_id_1')
-
-    const response = await limiter.get('user_id_1')
-    assert.containsSubset(response, {
-      consumed: 1,
-      limit: 5,
-      remaining: 4,
     })
-  })
 
-  test('create an instance of mysql store', async ({ assert }) => {
-    const manager = new LimiterManager(
-      application,
-      {
-        default: 'db',
-        stores: {
-          db: {
-            client: 'db',
-            dbName: process.env.DB_NAME!,
-            tableName: 'rate_limits',
-            connectionName: 'mysql',
-          },
-        },
-      },
-      {}
-    )
+    const limiter = limiterManager.use('redis', { requests: 10, duration: '2 minutes' })
+    assert.instanceOf(limiter, Limiter)
 
-    const limiter = manager.use({ duration: '1 sec', requests: 5 })
-    await limiter.consume('user_id_1')
-
-    const response = await limiter.get('user_id_1')
-    assert.containsSubset(response, {
+    const response = await limiter.consume('ip_localhost')
+    assert.containsSubset(response.toJSON(), {
+      limit: 10,
+      remaining: 9,
       consumed: 1,
-      limit: 5,
-      remaining: 4,
     })
+    assert.closeTo(response.availableIn, 120, 5)
   })
 
-  test('create an instance of postgresql store', async ({ assert }) => {
-    const manager = new LimiterManager(
-      application,
-      {
-        default: 'db',
-        stores: {
-          db: {
-            client: 'db',
-            dbName: process.env.DB_NAME!,
-            tableName: 'rate_limits',
-            connectionName: 'pg',
-          },
-        },
+  test('re-use instances as long as all options are the same', async ({ assert }) => {
+    const redis = createRedis(['rlflx:ip_localhost']).connection()
+    const limiterManager = new LimiterManager({
+      default: 'redis',
+      stores: {
+        redis: (options) => new LimiterRedisStore(redis, options),
       },
-      {}
-    )
-
-    const limiter = manager.use({ duration: '1 sec', requests: 5 })
-    await limiter.consume('user_id_1')
-
-    const response = await limiter.get('user_id_1')
-    assert.containsSubset(response, {
-      consumed: 1,
-      limit: 5,
-      remaining: 4,
     })
+
+    assert.strictEqual(
+      limiterManager.use('redis', { requests: 10, duration: '2 minutes' }),
+      limiterManager.use('redis', { requests: 10, duration: '2 minutes' })
+    )
+    assert.strictEqual(
+      limiterManager.use('redis', { requests: 10, duration: '2 minutes' }),
+      limiterManager.use({ requests: 10, duration: '2 minutes' })
+    )
+    assert.notStrictEqual(
+      limiterManager.use('redis', { requests: 10, duration: '2 minutes' }),
+      limiterManager.use('redis', { requests: 10, duration: '1 minute' })
+    )
+    assert.notStrictEqual(
+      limiterManager.use('redis', { requests: 10, duration: '2 minutes' }),
+      limiterManager.use('redis', { requests: 5, duration: '2 minutes' })
+    )
+    assert.notStrictEqual(
+      limiterManager.use('redis', { requests: 10, duration: '2 minutes' }),
+      limiterManager.use('redis', { requests: 10, duration: '2 minutes', blockDuration: '2 mins' })
+    )
   })
 
-  test('raise exception when store is not defined in the config', async ({ assert }) => {
-    const manager = new LimiterManager(
-      application,
-      {
-        default: 'db',
-        stores: {
-          db: {
-            client: 'db',
-            dbName: process.env.DB_NAME!,
-            tableName: 'rate_limits',
-            connectionName: 'pg',
-          },
-        },
+  test('throw error when no options are provided', async ({ assert }) => {
+    const redis = createRedis(['rlflx:ip_localhost']).connection()
+    const limiterManager = new LimiterManager({
+      default: 'redis',
+      stores: {
+        redis: (options) => new LimiterRedisStore(redis, options),
       },
-      {}
-    )
+    })
 
     assert.throws(
-      () => manager.use('redis' as any, { duration: '1 sec', requests: 5 }),
-      'E_UNRECOGNIZED_LIMITER_STORE: Unrecognized limiter store "redis". Make sure to define it inside "config/limiter.ts" file'
+      // @ts-expect-error
+      () => limiterManager.use('redis'),
+      'Specify the number of allowed requests and duration to create a limiter'
     )
-  })
-
-  test('raise exception when store client is invalid', async ({ assert }) => {
-    const manager = new LimiterManager(
-      application,
-      {
-        default: 'db',
-        stores: {
-          db: {
-            client: 'mongo' as any,
-            dbName: process.env.DB_NAME!,
-            tableName: 'rate_limits',
-            connectionName: 'pg',
-          },
-        },
-      },
-      {}
-    )
-
     assert.throws(
-      () => manager.use({ duration: '1 sec', requests: 5 }),
-      'E_INVALID_LIMITER_CLIENT: Invalid limiter client "mongo"'
+      // @ts-expect-error
+      () => limiterManager.use(),
+      'Specify the number of allowed requests and duration to create a limiter'
     )
   })
 
-  test('return cached limiter when runtime config is same', async ({ assert }) => {
-    const manager = new LimiterManager(
-      application,
-      {
-        default: 'redis',
-        stores: {
-          redis: {
-            client: 'redis',
-            connectionName: 'local',
-          } as const,
-        },
+  test('clear all stores', async ({ assert }) => {
+    const redis = createRedis(['rlflx:ip_localhost', 'rlflx:id_1']).connection()
+
+    const limiterManager = new LimiterManager({
+      default: 'redis',
+      stores: {
+        redis: (options) => new LimiterRedisStore(redis, options),
+        memory: (options) => new LimiterMemoryStore(options),
       },
-      {}
-    )
+    })
 
-    const limiter = manager.use({ duration: '1 sec', requests: 5 })
-    Object.defineProperty(limiter, 'foo', { value: 'bar' })
+    const global = limiterManager.use('redis', { duration: 60, requests: 2 })
+    const user = limiterManager.use('redis', { duration: 60, requests: 4 })
 
-    assert.property(manager.use({ duration: '1 sec', requests: 5 }), 'foo')
+    const memoryGlobal = limiterManager.use('memory', { duration: 60, requests: 2 })
+    const memoryUser = limiterManager.use('memory', { duration: 60, requests: 4 })
+
+    await global.consume('ip_localhost')
+    await user.consume('id_1')
+    await memoryGlobal.consume('ip_localhost')
+    await memoryUser.consume('id_1')
+
+    assert.equal(await global.remaining('ip_localhost'), 1)
+    assert.equal(await user.remaining('id_1'), 3)
+    assert.equal(await memoryGlobal.remaining('ip_localhost'), 1)
+    assert.equal(await memoryUser.remaining('id_1'), 3)
+
+    await limiterManager.clear()
+    assert.equal(await global.remaining('ip_localhost'), 2)
+    assert.equal(await user.remaining('id_1'), 4)
+    assert.equal(await memoryGlobal.remaining('ip_localhost'), 2)
+    assert.equal(await memoryUser.remaining('id_1'), 4)
   })
 
-  test('define http limiters', async ({ assert }) => {
-    const manager = new LimiterManager(
-      application,
-      {
-        default: 'db',
-        stores: {
-          db: {
-            client: 'db',
-            dbName: process.env.DB_NAME!,
-            tableName: 'rate_limits',
-            connectionName: 'pg',
-          },
-        },
+  test('clear selected stores', async ({ assert }) => {
+    const redis = createRedis(['rlflx:ip_localhost', 'rlflx:id_1']).connection()
+
+    const limiterManager = new LimiterManager({
+      default: 'redis',
+      stores: {
+        redis: (options) => new LimiterRedisStore(redis, options),
+        memory: (options) => new LimiterMemoryStore(options),
       },
-      {}
-    )
+    })
 
-    const { httpLimiters } = manager
-      .define('main', () => {
-        return manager.allowRequests(1000)
-      })
-      .define('auth', () => {
-        return manager.allowRequests(100).every('5 mins')
-      })
+    const global = limiterManager.use('redis', { duration: 60, requests: 2 })
+    const user = limiterManager.use('redis', { duration: 60, requests: 4 })
 
-    assert.properties(httpLimiters, ['main', 'auth'])
-    assert.deepEqual(httpLimiters.main().toJSON().config, { requests: 1000, duration: '1 min' })
-    assert.deepEqual(httpLimiters.auth().toJSON().config, { requests: 100, duration: '5 mins' })
+    const memoryGlobal = limiterManager.use('memory', { duration: 60, requests: 2 })
+    const memoryUser = limiterManager.use('memory', { duration: 60, requests: 4 })
+
+    await global.consume('ip_localhost')
+    await user.consume('id_1')
+    await memoryGlobal.consume('ip_localhost')
+    await memoryUser.consume('id_1')
+
+    assert.equal(await global.remaining('ip_localhost'), 1)
+    assert.equal(await user.remaining('id_1'), 3)
+    assert.equal(await memoryGlobal.remaining('ip_localhost'), 1)
+    assert.equal(await memoryUser.remaining('id_1'), 3)
+
+    await limiterManager.clear(['redis'])
+    assert.equal(await global.remaining('ip_localhost'), 2)
+    assert.equal(await user.remaining('id_1'), 4)
+    assert.equal(await memoryGlobal.remaining('ip_localhost'), 1)
+    assert.equal(await memoryUser.remaining('id_1'), 3)
   })
 })
