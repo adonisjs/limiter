@@ -13,7 +13,6 @@ import { HttpContextFactory } from '@adonisjs/core/factories/http'
 import { createRedis } from './helpers.js'
 import LimiterRedisStore from '../src/stores/redis.js'
 import { LimiterManager } from '../src/limiter_manager.js'
-import ThrottleMiddleware from '../src/middlewae/throttle_middleware.js'
 
 test.group('Throttle middleware', () => {
   test('throttle requests using the middleware', async ({ assert }) => {
@@ -32,13 +31,9 @@ test.group('Throttle middleware', () => {
     })
 
     const ctx = new HttpContextFactory().create()
-    await new ThrottleMiddleware().handle(
-      ctx,
-      () => {
-        nextCalled = true
-      },
-      apiLimiter
-    )
+    await apiLimiter(ctx, () => {
+      nextCalled = true
+    })
 
     assert.equal(await limiterManager.use({ duration: 60, requests: 1 }).remaining('api_1'), 0)
     assert.isTrue(nextCalled)
@@ -58,19 +53,19 @@ test.group('Throttle middleware', () => {
     const apiLimiter = limiterManager.define('api', (_, limiter) => {
       return limiter.allowRequests(1).every('1 minute').usingKey(1)
     })
+
+    /**
+     * This will consume all the requests the
+     * key has
+     */
+    await limiterManager.use({ duration: 60, requests: 1 }).consume('api_1')
+
     const ctx = new HttpContextFactory().create()
 
-    const limiter = await apiLimiter(ctx)
-    await limiter!.throttle()
-
     try {
-      await new ThrottleMiddleware().handle(
-        ctx,
-        () => {
-          nextCalled = true
-        },
-        apiLimiter
-      )
+      await apiLimiter(ctx, () => {
+        nextCalled = true
+      })
     } catch (error) {
       assert.equal(error.message, 'Too many requests')
       assert.isFalse(nextCalled)
@@ -93,13 +88,9 @@ test.group('Throttle middleware', () => {
     })
     const ctx = new HttpContextFactory().create()
 
-    await new ThrottleMiddleware().handle(
-      ctx,
-      () => {
-        nextCalled = true
-      },
-      apiLimiter
-    )
+    await apiLimiter(ctx, () => {
+      nextCalled = true
+    })
     assert.isTrue(nextCalled)
   })
 })

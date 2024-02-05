@@ -16,9 +16,7 @@ import type { RedisConnectionsList } from '@adonisjs/redis/types'
 import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
 
 import debug from './debug.js'
-import LimiterRedisStore from './stores/redis.js'
 import LimiterMemoryStore from './stores/memory.js'
-import LimiterDatabaseStore from './stores/database.js'
 import type {
   LimiterRedisStoreConfig,
   LimiterMemoryStoreConfig,
@@ -141,6 +139,7 @@ export const stores: {
   redis: (config) => {
     return configProvider.create(async (app) => {
       const redis = await app.container.make('redis')
+      const { default: LimiterRedisStore } = await import('./stores/redis.js')
       return (consumptionOptions) =>
         new LimiterRedisStore(redis.connection(config.connectionName), {
           ...config,
@@ -151,6 +150,7 @@ export const stores: {
   database: (config) => {
     return configProvider.create(async (app) => {
       const db = await app.container.make('lucid.db')
+      const { default: LimiterDatabaseStore } = await import('./stores/database.js')
       return (consumptionOptions) =>
         new LimiterDatabaseStore(db.connection(config.connectionName), {
           ...config,

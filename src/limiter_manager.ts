@@ -15,6 +15,7 @@ import debug from './debug.js'
 import { Limiter } from './limiter.js'
 import { HttpLimiter } from './http_limiter.js'
 import type { LimiterConsumptionOptions, LimiterManagerStoreFactory } from './types.js'
+import { MiddlewareFn } from '@adonisjs/core/types/http'
 
 /**
  * Limiter manager is used to manage multiple rate limiters
@@ -109,8 +110,8 @@ export class LimiterManager<KnownStores extends Record<string, LimiterManagerSto
   }
 
   /**
-   * Define a named HTTP limiter that can you use
-   * throttle HTTP requests.
+   * Define a named HTTP middleware to apply rate
+   * limits on specific routes
    */
   define(
     name: string,
@@ -118,10 +119,48 @@ export class LimiterManager<KnownStores extends Record<string, LimiterManagerSto
       ctx: HttpContext,
       httpLimiter: HttpLimiter<KnownStores>
     ) => HttpLimiter<any> | null | Promise<HttpLimiter<any>> | Promise<null>
-  ): (ctx: HttpContext) => HttpLimiter<any> | null | Promise<HttpLimiter<any>> | Promise<null> {
-    return (ctx: HttpContext) => {
-      const limiter = new HttpLimiter(name, ctx, this)
-      return builder(ctx, limiter)
+  ): MiddlewareFn {
+    const middlewareFn: MiddlewareFn = async (ctx, next) => {
+      /**
+       * Invoke the builder for every HTTP request and we use
+       * the return value to decide how to apply the rate
+       * limit on the request
+       */
+      const limiter = await builder(ctx, new HttpLimiter(name, ctx, this))
+
+      /**
+       * Do not throttle when no limiter is used for
+       * the request
+       */
+      if (!limiter) {
+        return next()
+      }
+
+      /**
+       * Throttle request using the HTTP limiter
+       */
+      const limiterResponse = await limiter.throttle()
+
+      /**
+       * Invoke rest of the pipeline
+       */
+      const response = await next()
+
+      /**
+       * Define appropriate headers
+       */
+      ctx.response.header('X-RateLimit-Limit', limiterResponse.limit)
+      ctx.response.header('X-RateLimit-Remaining', limiterResponse.remaining)
+
+      /**
+       * Return response
+       */
+      return response
     }
+
+    Object.defineProperty(middlewareFn, 'name', {
+      value: `${name}Throttle`,
+    })
+    return middlewareFn
   }
 }
