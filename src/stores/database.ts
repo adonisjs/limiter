@@ -100,6 +100,7 @@ export default class LimiterDatabaseStore extends RateLimiterBridge {
    */
   async clear() {
     debug('truncating database table %s', this.#config.tableName)
+    this.deleteInMemoryBlockedKeys()
     await this.#client.dialect.truncate(this.#config.tableName, true)
   }
 }

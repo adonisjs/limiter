@@ -56,6 +56,7 @@ export default class LimiterRedisStore extends RateLimiterBridge {
    * as this method flushes the entire database
    */
   async clear() {
+    this.deleteInMemoryBlockedKeys()
     if (this.#client instanceof RedisClusterConnection) {
       debug('flushing redis cluster')
       for (let node of this.#client.nodes('master')) {
