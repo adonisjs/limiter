@@ -109,12 +109,12 @@ test.group('Limiter', () => {
         executionStack.push('executed 2')
       })
     )
-    assert.isFalse(
+    assert.isUndefined(
       await limiter.attempt('ip_localhost', () => {
         executionStack.push('executed 3')
       })
     )
-    assert.isFalse(
+    assert.isUndefined(
       await limiter.attempt('ip_localhost', () => {
         executionStack.push('executed 4')
       })
