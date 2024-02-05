@@ -8,7 +8,9 @@
  */
 
 export * as errors from './src/errors.js'
+export { configure } from './configure.js'
 export { Limiter } from './src/limiter.js'
+export { stubsRoot } from './stubs/main.js'
 export { LimiterResponse } from './src/response.js'
 export { HttpLimiter } from './src/http_limiter.js'
 export { LimiterManager } from './src/limiter_manager.js'
