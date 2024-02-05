@@ -165,4 +165,11 @@ export class Limiter implements LimiterStoreContract {
 
     return response.consumed >= response.limit
   }
+
+  /**
+   * Clear the storage database
+   */
+  clear(): Promise<void> {
+    return this.#store.clear()
+  }
 }

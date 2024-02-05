@@ -13,6 +13,7 @@ import { createRedis } from './helpers.js'
 import { Limiter } from '../src/limiter.js'
 import LimiterRedisStore from '../src/stores/redis.js'
 import { LimiterManager } from '../src/limiter_manager.js'
+import LimiterMemoryStore from '../src/stores/memory.js'
 
 test.group('Limiter manager', () => {
   test('create limiter instances using manager', async ({ assert }) => {
@@ -86,5 +87,73 @@ test.group('Limiter manager', () => {
       () => limiterManager.use(),
       'Specify the number of allowed requests and duration to create a limiter'
     )
+  })
+
+  test('clear all stores', async ({ assert }) => {
+    const redis = createRedis(['rlflx:ip_localhost', 'rlflx:id_1']).connection()
+
+    const limiterManager = new LimiterManager({
+      default: 'redis',
+      stores: {
+        redis: (options) => new LimiterRedisStore(redis, options),
+        memory: (options) => new LimiterMemoryStore(options),
+      },
+    })
+
+    const global = limiterManager.use('redis', { duration: 60, requests: 2 })
+    const user = limiterManager.use('redis', { duration: 60, requests: 4 })
+
+    const memoryGlobal = limiterManager.use('memory', { duration: 60, requests: 2 })
+    const memoryUser = limiterManager.use('memory', { duration: 60, requests: 4 })
+
+    await global.consume('ip_localhost')
+    await user.consume('id_1')
+    await memoryGlobal.consume('ip_localhost')
+    await memoryUser.consume('id_1')
+
+    assert.equal(await global.remaining('ip_localhost'), 1)
+    assert.equal(await user.remaining('id_1'), 3)
+    assert.equal(await memoryGlobal.remaining('ip_localhost'), 1)
+    assert.equal(await memoryUser.remaining('id_1'), 3)
+
+    await limiterManager.clear()
+    assert.equal(await global.remaining('ip_localhost'), 2)
+    assert.equal(await user.remaining('id_1'), 4)
+    assert.equal(await memoryGlobal.remaining('ip_localhost'), 2)
+    assert.equal(await memoryUser.remaining('id_1'), 4)
+  })
+
+  test('clear selected stores', async ({ assert }) => {
+    const redis = createRedis(['rlflx:ip_localhost', 'rlflx:id_1']).connection()
+
+    const limiterManager = new LimiterManager({
+      default: 'redis',
+      stores: {
+        redis: (options) => new LimiterRedisStore(redis, options),
+        memory: (options) => new LimiterMemoryStore(options),
+      },
+    })
+
+    const global = limiterManager.use('redis', { duration: 60, requests: 2 })
+    const user = limiterManager.use('redis', { duration: 60, requests: 4 })
+
+    const memoryGlobal = limiterManager.use('memory', { duration: 60, requests: 2 })
+    const memoryUser = limiterManager.use('memory', { duration: 60, requests: 4 })
+
+    await global.consume('ip_localhost')
+    await user.consume('id_1')
+    await memoryGlobal.consume('ip_localhost')
+    await memoryUser.consume('id_1')
+
+    assert.equal(await global.remaining('ip_localhost'), 1)
+    assert.equal(await user.remaining('id_1'), 3)
+    assert.equal(await memoryGlobal.remaining('ip_localhost'), 1)
+    assert.equal(await memoryUser.remaining('id_1'), 3)
+
+    await limiterManager.clear(['redis'])
+    assert.equal(await global.remaining('ip_localhost'), 2)
+    assert.equal(await user.remaining('id_1'), 4)
+    assert.equal(await memoryGlobal.remaining('ip_localhost'), 1)
+    assert.equal(await memoryUser.remaining('id_1'), 3)
   })
 })

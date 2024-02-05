@@ -209,6 +209,11 @@ export interface LimiterStoreContract {
   deleteInMemoryBlockedKeys(): void
 
   /**
+   * Clear the storage database
+   */
+  clear(): Promise<void>
+
+  /**
    * Get limiter response for a given key. Returns null when
    * key doesn't exist.
    */

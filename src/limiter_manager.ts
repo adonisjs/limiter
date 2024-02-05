@@ -9,13 +9,13 @@
 
 import string from '@adonisjs/core/helpers/string'
 import type { HttpContext } from '@adonisjs/core/http'
+import type { MiddlewareFn } from '@adonisjs/core/types/http'
 import { RuntimeException } from '@adonisjs/core/exceptions'
 
 import debug from './debug.js'
 import { Limiter } from './limiter.js'
 import { HttpLimiter } from './http_limiter.js'
 import type { LimiterConsumptionOptions, LimiterManagerStoreFactory } from './types.js'
-import { MiddlewareFn } from '@adonisjs/core/types/http'
 
 /**
  * Limiter manager is used to manage multiple rate limiters
@@ -26,18 +26,13 @@ import { MiddlewareFn } from '@adonisjs/core/types/http'
  */
 export class LimiterManager<KnownStores extends Record<string, LimiterManagerStoreFactory>> {
   /**
-   * Configuration with a collection of known stores
-   */
-  #config: { default: keyof KnownStores; stores: KnownStores }
-
-  /**
    * Cached limiters. One limiter is created for a unique combination
    * of "store,requests,duration,blockDuration" options
    */
-  #limiters: Map<string, Limiter> = new Map()
+  #limiters: Map<string, Map<string, Limiter>> = new Map()
 
-  constructor(config: { default: keyof KnownStores; stores: KnownStores }) {
-    this.#config = config
+  constructor(public config: { default: keyof KnownStores; stores: KnownStores }) {
+    this.config = config
   }
 
   /**
@@ -68,7 +63,7 @@ export class LimiterManager<KnownStores extends Record<string, LimiterManagerSto
     /**
      * Normalize options
      */
-    let storeToUse: keyof KnownStores = typeof store === 'string' ? store : this.#config.default
+    let storeToUse: keyof KnownStores = typeof store === 'string' ? store : this.config.default
     let optionsToUse: LimiterConsumptionOptions | undefined =
       typeof store === 'object' ? store : options
 
@@ -87,6 +82,16 @@ export class LimiterManager<KnownStores extends Record<string, LimiterManagerSto
     }
 
     /**
+     * Initiate the store map when it does not have any
+     * cached limiters
+     */
+    if (!this.#limiters.has(storeToUse as string)) {
+      this.#limiters.set(storeToUse as string, new Map())
+    }
+
+    const storeLimiters = this.#limiters.get(storeToUse as string)!
+
+    /**
      * Make limiter key to uniquely identify a limiter
      */
     const limiterKey = this.makeLimiterKey(storeToUse, optionsToUse)
@@ -95,18 +100,55 @@ export class LimiterManager<KnownStores extends Record<string, LimiterManagerSto
     /**
      * Read and return from cache
      */
-    if (this.#limiters.has(limiterKey)) {
+    if (storeLimiters.has(limiterKey)) {
       debug('re-using cached limiter store "%s", options %O', storeToUse, optionsToUse)
-      return this.#limiters.get(limiterKey)!
+      return storeLimiters.get(limiterKey)!
     }
 
     /**
      * Create a fresh instance and cache it
      */
-    const limiter = new Limiter(this.#config.stores[storeToUse](optionsToUse))
+    const limiter = new Limiter(this.config.stores[storeToUse](optionsToUse))
     debug('creating new limiter instance "%s", options %O', storeToUse, optionsToUse)
-    this.#limiters.set(limiterKey, limiter)
+    storeLimiters.set(limiterKey, limiter)
     return limiter
+  }
+
+  /**
+   * Clear stored data with the stores
+   */
+  async clear(stores?: Extract<keyof KnownStores, string>[]) {
+    const storesToUse = stores || Object.keys(this.config.stores)
+
+    /**
+     * Loop over all the limiters created across all the stores
+     * and clear their storage.
+     *
+     * Since, all stores uses a central database, we just need the
+     * first instance and call clear on it.
+     *
+     * In case of memory store, we have to clear all the stores.
+     */
+    for (let store of storesToUse) {
+      const storeLimiters = this.#limiters.get(store)
+      if (storeLimiters) {
+        /**
+         * Clear all instances in case of the memory
+         * store
+         */
+        if (store === 'memory') {
+          for (let limiter of storeLimiters.values()) {
+            await limiter.clear()
+          }
+        } else {
+          /**
+           * Clear first store
+           */
+          const [limiter] = storeLimiters.values()
+          limiter && (await limiter.clear())
+        }
+      }
+    }
   }
 
   /**
