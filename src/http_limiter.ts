@@ -143,7 +143,7 @@ export class HttpLimiter<KnownStores extends Record<string, LimiterManagerStoreF
     /**
      * Abort when user has exhausted all the requests
      */
-    if (limiterResponse && limiterResponse.remaining <= 0) {
+    if (limiterResponse && limiterResponse.remaining < 0) {
       debug('requests exhausted for key "%s"', key)
       const error = new E_TOO_MANY_REQUESTS(limiterResponse)
       this.#exceptionModifier(error)
