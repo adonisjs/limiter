@@ -24,8 +24,8 @@
     "./types": "./build/src/types.js"
   },
   "scripts": {
-    "pretest": "npm run lint",
-    "test": "npm run test:pg && npm run test:mysql && cp -r coverage/*/tmp/. coverage/tmp && c8 report",
+    "pretest": "npm run lint && del-cli coverage",
+    "test": "npm run test:pg && npm run test:mysql && mkdir coverage/tmp && cp -r coverage/*/tmp/. coverage/tmp && c8 report",
     "test:pg": "cross-env DB=pg c8 --reporter=json --report-dir=coverage/pg npm run quick:test",
     "test:mysql": "cross-env DB=mysql c8 --reporter=json --report-dir=coverage/mysql npm run quick:test",
     "clean": "del-cli build",
@@ -54,6 +54,7 @@
     "@adonisjs/redis": "^8.0.1",
     "@adonisjs/tsconfig": "^1.1.8",
     "@japa/assert": "^2.1.0",
+    "@japa/expect-type": "^2.0.1",
     "@japa/file-system": "^2.2.0",
     "@japa/runner": "^3.1.1",
     "@swc/core": "^1.3.68",

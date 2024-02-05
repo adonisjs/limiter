@@ -8,8 +8,8 @@
  */
 
 import string from '@adonisjs/core/helpers/string'
-import type { RedisConnection } from '@adonisjs/redis'
 import { RateLimiterRedis } from 'rate-limiter-flexible'
+import type { RedisClusterConnection, RedisConnection } from '@adonisjs/redis'
 
 import debug from '../debug.js'
 import RateLimiterBridge from './bridge.js'
@@ -24,7 +24,7 @@ export default class LimiterRedisStore extends RateLimiterBridge {
     return 'redis'
   }
 
-  constructor(client: RedisConnection, config: LimiterRedisStoreConfig) {
+  constructor(client: RedisConnection | RedisClusterConnection, config: LimiterRedisStoreConfig) {
     debug('creating redis limiter store %O', config)
     super(
       new RateLimiterRedis({
