@@ -58,7 +58,7 @@ test.group('Define config', () => {
     assert.isNull(await store.get('ip_localhost'))
   })
 
-  test('use default database connection no connection is defined', async ({ assert }) => {
+  test('use default database when no explicit database is configured', async ({ assert }) => {
     const database = createDatabase()
     await createTables(database)
 

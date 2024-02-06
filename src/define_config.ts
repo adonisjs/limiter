@@ -152,10 +152,29 @@ export const stores: {
       const db = await app.container.make('lucid.db')
       const { default: LimiterDatabaseStore } = await import('./stores/database.js')
 
-      if (config.connectionName && !db.manager.has(config.connectionName)) {
+      config.connectionName = config.connectionName || db.primaryConnectionName
+      const connection = db.manager.get(config.connectionName)
+
+      /**
+       * Throw error when mentioned connection is not specified
+       * in the database file
+       */
+      if (!connection) {
         throw new RuntimeException(
           `Invalid connection name "${config.connectionName}" referenced by "config/limiter.ts" file. First register the connection inside "config/database.ts" file`
         )
+      }
+
+      /**
+       * Infer database name from the connection config
+       */
+      if (
+        !config.dbName &&
+        connection.config.connection &&
+        typeof connection.config.connection !== 'string' &&
+        'database' in connection.config.connection
+      ) {
+        config.dbName = connection.config.connection.database
       }
 
       return (consumptionOptions) =>
