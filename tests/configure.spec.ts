@@ -7,6 +7,7 @@
  * file that was distributed with this source code.
  */
 
+import timekeeper from 'timekeeper'
 import { test } from '@japa/runner'
 import { fileURLToPath } from 'node:url'
 import { IgnitorFactory } from '@adonisjs/core/factories'
@@ -142,5 +143,39 @@ test.group('Configure', (group) => {
 
     command.assertFailed()
     command.assertLog('Invalid limiter store "foo". Supported stores are: database and redis')
+  })
+
+  test('create migration file when database store is used', async ({ assert, fs }) => {
+    timekeeper.freeze()
+
+    const ignitor = new IgnitorFactory()
+      .withCoreProviders()
+      .withCoreConfig()
+      .create(fs.baseUrl, {
+        importer: (filePath) => {
+          if (filePath.startsWith('./') || filePath.startsWith('../')) {
+            return import(new URL(filePath, fs.baseUrl).href)
+          }
+
+          return import(filePath)
+        },
+      })
+
+    const app = ignitor.createApp('console')
+    await app.init()
+    await app.boot()
+
+    await fs.create('.env', '')
+    await fs.createJson('tsconfig.json', {})
+    await fs.create('start/env.ts', `export default Env.create(new URL('./'), {})`)
+    await fs.create('adonisrc.ts', `export default defineConfig({})`)
+
+    const ace = await app.container.make('ace')
+    const command = await ace.create(Configure, ['../index.js', '--store=database'])
+    await command.exec()
+
+    await assert.fileExists(
+      `database/migrations/${new Date().getTime()}_create_rate_limits_table.ts`
+    )
   })
 })

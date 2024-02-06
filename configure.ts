@@ -71,6 +71,20 @@ export async function configure(command: Configure) {
   })
 
   /**
+   * Publish migration when using database to store
+   * rate limits
+   */
+  if (selectedStore === 'database') {
+    await codemods.makeUsingStub(stubsRoot, 'make/migration/rate_limits.stub', {
+      entity: command.app.generators.createEntity('rate_limits'),
+      migration: {
+        folder: 'database/migrations',
+        fileName: `${new Date().getTime()}_create_rate_limits_table.ts`,
+      },
+    })
+  }
+
+  /**
    * Define env variables for the selected store
    */
   await codemods.defineEnvVariables({
