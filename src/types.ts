@@ -81,7 +81,10 @@ export type LimiterStoreBaseConfig = {
  * The options accepted by stores to consume request/points
  * for a given key.
  */
-export type LimiterConsumptionOptions = {
+export type LimiterConsumptionOptions = Pick<
+  LimiterStoreBaseConfig,
+  'inMemoryBlockDuration' | 'inMemoryBlockOnConsumed'
+> & {
   /**
    * Number of requests to allow during the specific
    * duration

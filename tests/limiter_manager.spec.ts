@@ -66,6 +66,15 @@ test.group('Limiter manager', () => {
       limiterManager.use('redis', { requests: 10, duration: '2 minutes' }),
       limiterManager.use('redis', { requests: 10, duration: '2 minutes', blockDuration: '2 mins' })
     )
+    assert.notStrictEqual(
+      limiterManager.use('redis', { requests: 10, duration: '2 minutes' }),
+      limiterManager.use('redis', {
+        requests: 10,
+        duration: '2 minutes',
+        inMemoryBlockOnConsumed: 12,
+        inMemoryBlockDuration: '2 minutes',
+      })
+    )
   })
 
   test('throw error when no options are provided', async ({ assert }) => {

@@ -45,6 +45,12 @@ export class LimiterManager<KnownStores extends Record<string, LimiterManagerSto
     if (options.blockDuration) {
       chunks.push(`bd:${options.blockDuration}`)
     }
+    if (options.inMemoryBlockOnConsumed) {
+      chunks.push(`mbc:${options.inMemoryBlockOnConsumed}`)
+    }
+    if (options.inMemoryBlockDuration) {
+      chunks.push(`mbd:${options.inMemoryBlockDuration}`)
+    }
     return chunks.join(',')
   }
 
@@ -79,6 +85,9 @@ export class LimiterManager<KnownStores extends Record<string, LimiterManagerSto
     optionsToUse.duration = string.seconds.parse(optionsToUse.duration)
     if (optionsToUse.blockDuration) {
       optionsToUse.blockDuration = string.seconds.parse(optionsToUse.blockDuration)
+    }
+    if (optionsToUse.inMemoryBlockDuration) {
+      optionsToUse.inMemoryBlockDuration = string.seconds.parse(optionsToUse.inMemoryBlockDuration)
     }
 
     /**
