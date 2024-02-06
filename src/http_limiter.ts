@@ -136,7 +136,7 @@ export class HttpLimiter<KnownStores extends Record<string, LimiterManagerStoreF
       ? this.#manager.use(this.#store, this.#options as LimiterConsumptionOptions)
       : this.#manager.use(this.#options as LimiterConsumptionOptions)
 
-    const key = `${prefix}_${this.#key || ctx.request.ip()}`
+    const key = `${prefix}_${this.#key || `ip_${ctx.request.ip()}`}`
     debug('throttling HTTP request for key "%s"', key)
     const limiterResponse = await limiter.get(key)
 
