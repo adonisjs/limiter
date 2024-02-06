@@ -216,13 +216,15 @@ test.group('Limiter', () => {
       })
     }, 'Something went wrong')
 
+    assert.equal(await limiter.remaining('ip_localhost'), 1)
+
     assert.isTrue(
       await limiter.penalize('ip_localhost', () => {
         return true
       })
     )
 
-    assert.equal(await limiter.remaining('ip_localhost'), 1)
+    assert.isNull(await limiter.get('ip_localhost'))
   })
 
   test('throw error via penalize when all requests has been exhausted', async ({ assert }) => {
