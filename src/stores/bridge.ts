@@ -58,6 +58,19 @@ export default abstract class RateLimiterBridge implements LimiterStoreContract 
   abstract clear(): Promise<void>
 
   /**
+   * Makes LimiterResponse from "node-rate-limiter-flexible" response
+   * object
+   */
+  protected makeLimiterResponse(response: RateLimiterRes): LimiterResponse {
+    return new LimiterResponse({
+      limit: this.rateLimiter.points,
+      remaining: response.remainingPoints,
+      consumed: response.consumedPoints,
+      availableIn: Math.ceil(response.msBeforeNext / 1000),
+    })
+  }
+
+  /**
    * Consume 1 request for a given key. An exception is raised
    * when all the requests have already been consumed or if
    * the key is blocked.
@@ -66,23 +79,11 @@ export default abstract class RateLimiterBridge implements LimiterStoreContract 
     try {
       const response = await this.rateLimiter.consume(key, 1)
       debug('request consumed for key %s', key)
-      return new LimiterResponse({
-        limit: this.rateLimiter.points,
-        remaining: response.remainingPoints,
-        consumed: response.consumedPoints,
-        availableIn: Math.ceil(response.msBeforeNext / 1000),
-      })
+      return this.makeLimiterResponse(response)
     } catch (errorResponse: unknown) {
       debug('unable to consume request for key %s, %O', key, errorResponse)
       if (errorResponse instanceof RateLimiterRes) {
-        throw new E_TOO_MANY_REQUESTS(
-          new LimiterResponse({
-            limit: this.rateLimiter.points,
-            remaining: errorResponse.remainingPoints,
-            consumed: errorResponse.consumedPoints,
-            availableIn: Math.ceil(errorResponse.msBeforeNext / 1000),
-          })
-        )
+        throw new E_TOO_MANY_REQUESTS(this.makeLimiterResponse(errorResponse))
       }
 
       throw errorResponse
@@ -97,27 +98,36 @@ export default abstract class RateLimiterBridge implements LimiterStoreContract 
     const response = await this.rateLimiter.penalty(key, 1)
     debug('increased requests count for key %s', key)
 
-    return new LimiterResponse({
-      limit: this.rateLimiter.points,
-      remaining: response.remainingPoints,
-      consumed: response.consumedPoints,
-      availableIn: Math.ceil(response.msBeforeNext / 1000),
-    })
+    return this.makeLimiterResponse(response)
   }
 
   /**
    * Decrement the number of consumed requests for a given key.
    */
   async decrement(key: string | number): Promise<LimiterResponse> {
+    const existingKey = await this.rateLimiter.get(key)
+
+    /**
+     * Set key with zero when key does not exists
+     */
+    if (!existingKey) {
+      return this.set(key, 0, this.duration)
+    }
+
+    /**
+     * Do not decrement beyond zero
+     */
+    if (existingKey.consumedPoints <= 0) {
+      return this.makeLimiterResponse(existingKey)
+    }
+
+    /**
+     * Decrement
+     */
     const response = await this.rateLimiter.reward(key, 1)
     debug('decreased requests count for key %s', key)
 
-    return new LimiterResponse({
-      limit: this.rateLimiter.points,
-      remaining: response.remainingPoints,
-      consumed: response.consumedPoints,
-      availableIn: Math.ceil(response.msBeforeNext / 1000),
-    })
+    return this.makeLimiterResponse(response)
   }
 
   /**
@@ -127,12 +137,7 @@ export default abstract class RateLimiterBridge implements LimiterStoreContract 
   async block(key: string | number, duration: string | number): Promise<LimiterResponse> {
     const response = await this.rateLimiter.block(key, string.seconds.parse(duration))
     debug('blocked key %s', key)
-    return new LimiterResponse({
-      limit: this.rateLimiter.points,
-      remaining: response.remainingPoints,
-      consumed: response.consumedPoints,
-      availableIn: Math.ceil(response.msBeforeNext / 1000),
-    })
+    return this.makeLimiterResponse(response)
   }
 
   /**
@@ -155,19 +160,16 @@ export default abstract class RateLimiterBridge implements LimiterStoreContract 
 
     /**
      * The value of "response.remainingPoints" in a set method call
-     * is always zero. It is harded as such in the "rate-limiter-flexible"
-     * package.
+     * is always zero. It is hard coded as such in
+     * the "rate-limiter-flexible" package.
      *
      * Therefore, we compute it locally
      */
     const remaining = this.requests - response.consumedPoints
 
-    return new LimiterResponse({
-      limit: this.rateLimiter.points,
-      remaining: remaining < 0 ? 0 : remaining,
-      consumed: response.consumedPoints,
-      availableIn: Math.ceil(response.msBeforeNext / 1000),
-    })
+    const limiterResponse = this.makeLimiterResponse(response)
+    limiterResponse.remaining = remaining < 0 ? 0 : remaining
+    return limiterResponse
   }
 
   /**
@@ -198,11 +200,6 @@ export default abstract class RateLimiterBridge implements LimiterStoreContract 
       return null
     }
 
-    return new LimiterResponse({
-      limit: this.rateLimiter.points,
-      remaining: response.remainingPoints,
-      consumed: response.consumedPoints,
-      availableIn: Math.ceil(response.msBeforeNext / 1000),
-    })
+    return this.makeLimiterResponse(response)
   }
 }

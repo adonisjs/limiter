@@ -438,7 +438,5 @@ test.group('Limiter redis store | wrapper | decrement', () => {
 
     await assert.doesNotReject(() => store.consume('ip_localhost'))
     await assert.rejects(() => store.consume('ip_localhost'))
-  }).fails(
-    'Right now decrement method goes to negative values. Waiting on upstream package for a fix'
-  )
+  })
 })
