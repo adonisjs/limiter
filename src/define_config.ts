@@ -116,7 +116,7 @@ export const stores: {
    */
   redis: (
     config: Omit<LimiterRedisStoreConfig, keyof LimiterConsumptionOptions> & {
-      connectionName: keyof RedisConnections
+      connectionName?: keyof RedisConnections
     }
   ) => ConfigProvider<LimiterManagerStoreFactory>
 
