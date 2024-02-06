@@ -322,3 +322,123 @@ test.group('Limiter redis store | wrapper | clear', () => {
     assert.isNull(await store.get('ip_localhost'))
   })
 })
+
+test.group('Limiter redis store | wrapper | increment', () => {
+  test('increment the requests count', async ({ assert }) => {
+    const redis = createRedis(['rlflx:ip_localhost']).connection()
+    const store = new LimiterRedisStore(redis, {
+      duration: '1 minute',
+      requests: 5,
+    })
+
+    await store.consume('ip_localhost')
+    const response = await store.increment('ip_localhost')
+    assert.instanceOf(response, LimiterResponse)
+    assert.containsSubset(response.toJSON(), {
+      limit: 5,
+      remaining: 3,
+      consumed: 2,
+    })
+  })
+
+  test('do not throw when incrementing beyond the limit', async ({ assert }) => {
+    const redis = createRedis(['rlflx:ip_localhost']).connection()
+    const store = new LimiterRedisStore(redis, {
+      duration: '1 minute',
+      requests: 1,
+    })
+
+    await store.consume('ip_localhost')
+    await store.increment('ip_localhost')
+    const response = await store.increment('ip_localhost')
+    assert.instanceOf(response, LimiterResponse)
+    assert.containsSubset(response.toJSON(), {
+      limit: 1,
+      remaining: 0,
+      consumed: 3,
+    })
+  })
+
+  test('increment for non-existing key', async ({ assert }) => {
+    const redis = createRedis(['rlflx:ip_localhost']).connection()
+    const store = new LimiterRedisStore(redis, {
+      duration: '1 minute',
+      requests: 1,
+    })
+
+    const response = await store.increment('ip_localhost')
+    assert.instanceOf(response, LimiterResponse)
+    assert.containsSubset(response.toJSON(), {
+      limit: 1,
+      remaining: 0,
+      consumed: 1,
+    })
+  })
+})
+
+test.group('Limiter redis store | wrapper | decrement', () => {
+  test('decrement the requests count', async ({ assert }) => {
+    const redis = createRedis(['rlflx:ip_localhost']).connection()
+    const store = new LimiterRedisStore(redis, {
+      duration: '1 minute',
+      requests: 5,
+    })
+
+    await store.consume('ip_localhost')
+    const response = await store.decrement('ip_localhost')
+    assert.instanceOf(response, LimiterResponse)
+    assert.containsSubset(response.toJSON(), {
+      limit: 5,
+      remaining: 5,
+      consumed: 0,
+    })
+  })
+
+  test('do not throw when decrementing beyond zero', async ({ assert }) => {
+    const redis = createRedis(['rlflx:ip_localhost']).connection()
+    const store = new LimiterRedisStore(redis, {
+      duration: '1 minute',
+      requests: 1,
+    })
+
+    await store.consume('ip_localhost')
+    await store.decrement('ip_localhost')
+    const response = await store.decrement('ip_localhost')
+    const freshResponse = await store.get('ip_localhost')
+
+    assert.instanceOf(response, LimiterResponse)
+    assert.containsSubset(response.toJSON(), {
+      limit: 1,
+      remaining: 1,
+      consumed: 0,
+    })
+
+    assert.instanceOf(freshResponse, LimiterResponse)
+    assert.containsSubset(freshResponse!.toJSON(), {
+      limit: 1,
+      remaining: 1,
+      consumed: 0,
+    })
+  })
+
+  test('decrement non-existing key', async ({ assert }) => {
+    const redis = createRedis(['rlflx:ip_localhost']).connection()
+    const store = new LimiterRedisStore(redis, {
+      duration: '1 minute',
+      requests: 1,
+    })
+
+    const response = await store.decrement('ip_localhost')
+    assert.instanceOf(response, LimiterResponse)
+    assert.containsSubset(response.toJSON(), {
+      limit: 1,
+      remaining: 1,
+      consumed: 0,
+    })
+
+    await assert.doesNotReject(() => store.consume('ip_localhost'))
+    await assert.rejects(() => store.consume('ip_localhost'))
+  }).fails(
+    'Right now decrement method goes to negative values. Waiting on upstream package for a fix'
+  )
+})

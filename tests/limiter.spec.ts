@@ -36,6 +36,20 @@ test.group('Limiter', () => {
     assert.isTrue(consumeCall.calledOnceWithExactly('ip_localhost'), 'consume called')
 
     /**
+     * increment call
+     */
+    const incrementCall = sinon.spy(store, 'increment')
+    await limiter.increment('ip_localhost')
+    assert.isTrue(incrementCall.calledOnceWithExactly('ip_localhost'), 'increment called')
+
+    /**
+     * decrement call
+     */
+    const decrementCall = sinon.spy(store, 'decrement')
+    await limiter.decrement('ip_localhost')
+    assert.isTrue(decrementCall.calledOnceWithExactly('ip_localhost'), 'decrement called')
+
+    /**
      * get call
      */
     const getCall = sinon.spy(store, 'get')

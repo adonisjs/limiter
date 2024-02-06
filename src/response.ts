@@ -37,8 +37,9 @@ export class LimiterResponse {
     availableIn: number
   }) {
     this.limit = rawResponse.limit
-    this.remaining = rawResponse.remaining
-    this.consumed = rawResponse.consumed
+    this.remaining =
+      rawResponse.remaining > rawResponse.limit ? rawResponse.limit : rawResponse.remaining
+    this.consumed = rawResponse.consumed < 0 ? 0 : rawResponse.consumed
     this.availableIn = rawResponse.availableIn
   }
 

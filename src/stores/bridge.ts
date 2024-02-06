@@ -90,6 +90,37 @@ export default abstract class RateLimiterBridge implements LimiterStoreContract 
   }
 
   /**
+   * Increment the number of consumed requests for a given key.
+   * No errors are thrown when limit has reached
+   */
+  async increment(key: string | number): Promise<LimiterResponse> {
+    const response = await this.rateLimiter.penalty(key, 1)
+    debug('increased requests count for key %s', key)
+
+    return new LimiterResponse({
+      limit: this.rateLimiter.points,
+      remaining: response.remainingPoints,
+      consumed: response.consumedPoints,
+      availableIn: Math.ceil(response.msBeforeNext / 1000),
+    })
+  }
+
+  /**
+   * Decrement the number of consumed requests for a given key.
+   */
+  async decrement(key: string | number): Promise<LimiterResponse> {
+    const response = await this.rateLimiter.reward(key, 1)
+    debug('decreased requests count for key %s', key)
+
+    return new LimiterResponse({
+      limit: this.rateLimiter.points,
+      remaining: response.remainingPoints,
+      consumed: response.consumedPoints,
+      availableIn: Math.ceil(response.msBeforeNext / 1000),
+    })
+  }
+
+  /**
    * Block a given key for the given duration. The duration must be
    * a value in seconds or a string expression.
    */

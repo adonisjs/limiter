@@ -53,18 +53,18 @@ export class Limiter implements LimiterStoreContract {
   }
 
   /**
-   * Consume 1 request for a given key. This method is the same
-   * as the "consume" method but does not fail when the
-   * requests have been exhausted.
+   * Increment the number of consumed requests for a given key.
+   * No errors are thrown when limit has reached
    */
-  async increment(key: string | number): Promise<void> {
-    try {
-      await this.consume(key)
-    } catch (error) {
-      if (error instanceof E_TOO_MANY_REQUESTS === false) {
-        throw error
-      }
-    }
+  increment(key: string | number): Promise<LimiterResponse> {
+    return this.#store.increment(key)
+  }
+
+  /**
+   * Decrement the number of consumed requests for a given key.
+   */
+  decrement(key: string | number): Promise<LimiterResponse> {
+    return this.#store.decrement(key)
   }
 
   /**
