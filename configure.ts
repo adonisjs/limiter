@@ -64,6 +64,11 @@ export async function configure(command: Configure) {
   })
 
   /**
+   * Publish start/limiter file
+   */
+  await codemods.makeUsingStub(stubsRoot, 'start/limiter.stub', {})
+
+  /**
    * Publish provider
    */
   await codemods.updateRcFile((rcFile) => {

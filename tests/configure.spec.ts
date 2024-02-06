@@ -57,6 +57,7 @@ test.group('Configure', (group) => {
     await command.exec()
 
     await assert.fileExists('config/limiter.ts')
+    await assert.fileExists('start/limiter.ts')
     await assert.fileContains('adonisrc.ts', '@adonisjs/limiter/limiter_provider')
 
     await assert.fileContains('config/limiter.ts', [
