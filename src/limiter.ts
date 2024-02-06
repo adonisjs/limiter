@@ -72,6 +72,18 @@ export class Limiter implements LimiterStoreContract {
    * callback.
    */
   async attempt<T>(key: string | number, callback: () => T | Promise<T>): Promise<T | undefined> {
+    /**
+     * Return early when remaining requests are less than
+     * zero.
+     *
+     * We still run the "consume" method when remaining count is zero, since
+     * that will trigger the block logic on the key
+     */
+    const response = await this.get(key)
+    if (response && response.consumed > response.limit) {
+      return
+    }
+
     try {
       await this.consume(key)
       return callback()

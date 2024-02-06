@@ -113,27 +113,49 @@ test.group('Limiter', () => {
 
     const limiter = new Limiter(store)
 
-    assert.isUndefined(
-      await limiter.attempt('ip_localhost', () => {
-        executionStack.push('executed 1')
-      })
-    )
-    assert.isUndefined(
-      await limiter.attempt('ip_localhost', () => {
-        executionStack.push('executed 2')
-      })
-    )
-    assert.isUndefined(
-      await limiter.attempt('ip_localhost', () => {
-        executionStack.push('executed 3')
-      })
-    )
-    assert.isUndefined(
-      await limiter.attempt('ip_localhost', () => {
-        executionStack.push('executed 4')
-      })
-    )
+    await limiter.attempt('ip_localhost', () => {
+      executionStack.push('executed 1')
+    })
+    await limiter.attempt('ip_localhost', () => {
+      executionStack.push('executed 2')
+    })
+    await limiter.attempt('ip_localhost', () => {
+      executionStack.push('executed 3')
+    })
+    await limiter.attempt('ip_localhost', () => {
+      executionStack.push('executed 4')
+    })
+
     assert.deepEqual(executionStack, ['executed 1', 'executed 2'])
+    assert.equal(await limiter.remaining('ip_localhost'), 0)
+  })
+
+  test('block key when trying to attempt after exhausting all requests', async ({ assert }) => {
+    const executionStack: string[] = []
+    const redis = createRedis(['rlflx:ip_localhost']).connection()
+    const store = new LimiterRedisStore(redis, {
+      duration: '1 minute',
+      requests: 2,
+      blockDuration: '30 mins',
+    })
+
+    const limiter = new Limiter(store)
+
+    await limiter.attempt('ip_localhost', () => {
+      executionStack.push('executed 1')
+    })
+    await limiter.attempt('ip_localhost', () => {
+      executionStack.push('executed 2')
+    })
+    await limiter.attempt('ip_localhost', () => {
+      executionStack.push('executed 3')
+    })
+    await limiter.attempt('ip_localhost', () => {
+      executionStack.push('executed 4')
+    })
+
+    assert.deepEqual(executionStack, ['executed 1', 'executed 2'])
+    assert.closeTo(await limiter.availableIn('ip_localhost'), 30 * 60, 5)
   })
 
   test('get seconds left until the key will be available for new request', async ({ assert }) => {

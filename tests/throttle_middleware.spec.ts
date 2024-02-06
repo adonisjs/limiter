@@ -40,7 +40,7 @@ test.group('Throttle middleware', () => {
     assert.isTrue(nextCalled)
   })
 
-  test('do not call next when key is blocked', async ({ assert }) => {
+  test('do not call next when key has exhausted all requests', async ({ assert }) => {
     let nextCalled: boolean = false
 
     const redis = createRedis(['rlflx:api_1']).connection()
@@ -69,6 +69,40 @@ test.group('Throttle middleware', () => {
       })
     } catch (error) {
       assert.equal(error.message, 'Too many requests')
+      assert.isFalse(nextCalled)
+    }
+  })
+
+  test('block key when requests are made even after rate limited', async ({ assert }) => {
+    let nextCalled: boolean = false
+
+    const redis = createRedis(['rlflx:api_1']).connection()
+    const limiterManager = new LimiterManager({
+      default: 'redis',
+      stores: {
+        redis: (options) => new LimiterRedisStore(redis, options),
+      },
+    })
+
+    const apiLimiter = limiterManager.define('api', () => {
+      return limiterManager.allowRequests(1).every('1 minute').usingKey(1).blockFor('30 mins')
+    })
+
+    /**
+     * This will consume all the requests the
+     * key has
+     */
+    await limiterManager.use({ duration: 60, requests: 1 }).consume('api_1')
+
+    const ctx = new HttpContextFactory().create()
+
+    try {
+      await apiLimiter(ctx, () => {
+        nextCalled = true
+      })
+    } catch (error) {
+      assert.equal(error.message, 'Too many requests')
+      assert.closeTo(error.response.availableIn, 30 * 60, 5)
       assert.isFalse(nextCalled)
     }
   })

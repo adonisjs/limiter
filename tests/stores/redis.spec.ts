@@ -184,6 +184,25 @@ test.group('Limiter redis store | wrapper | get', () => {
     const response = await store.get('ip_localhost')
     assert.isNull(response)
   })
+
+  test('get response for negative points', async ({ assert }) => {
+    const redis = createRedis(['rlflx:ip_localhost']).connection()
+    const store = new LimiterRedisStore(redis, {
+      duration: '1 minute',
+      requests: 1,
+    })
+
+    await store.consume('ip_localhost')
+    await assert.rejects(() => store.consume('ip_localhost'))
+    const response = await store.get('ip_localhost')
+    assert.instanceOf(response, LimiterResponse)
+    assert.containsSubset(response!.toJSON(), {
+      limit: 1,
+      remaining: 0,
+      consumed: 2,
+    })
+    assert.closeTo(response!.availableIn, 60, 5)
+  })
 })
 
 test.group('Limiter redis store | wrapper | set', () => {

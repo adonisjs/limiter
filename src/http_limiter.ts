@@ -141,9 +141,12 @@ export class HttpLimiter<KnownStores extends Record<string, LimiterManagerStoreF
     const limiterResponse = await limiter.get(key)
 
     /**
-     * Abort when user has exhausted all the requests
+     * Abort when user has exhausted all the requests.
+     *
+     * We still run the "consume" method when remaining count is zero, since
+     * that will trigger the block logic on the key
      */
-    if (limiterResponse && limiterResponse.remaining < 0) {
+    if (limiterResponse && limiterResponse.consumed > limiterResponse.limit) {
       debug('requests exhausted for key "%s"', key)
       const error = new E_TOO_MANY_REQUESTS(limiterResponse)
       this.#exceptionModifier(error)
