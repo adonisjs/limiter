@@ -58,6 +58,42 @@ test.group('Define config', () => {
     assert.isNull(await store.get('ip_localhost'))
   })
 
+  test('use default database connection no connection is defined', async ({ assert }) => {
+    const database = createDatabase()
+    await createTables(database)
+
+    const app = new AppFactory().create(new URL('./', import.meta.url)) as ApplicationService
+    await app.init()
+
+    app.container.singleton('lucid.db', () => database)
+    const dbProvider = stores.database({
+      tableName: 'rate_limits',
+    })
+
+    const storeFactory = await dbProvider.resolver(app)
+    const store = storeFactory({ duration: '1mins', requests: 5 })
+    assert.instanceOf(store, LimiterDatabaseStore)
+    assert.isNull(await store.get('ip_localhost'))
+  })
+
+  test('throw error when unregistered db connection is used', async () => {
+    const database = createDatabase()
+    await createTables(database)
+
+    const app = new AppFactory().create(new URL('./', import.meta.url)) as ApplicationService
+    await app.init()
+
+    app.container.singleton('lucid.db', () => database)
+    const dbProvider = stores.database({
+      connectionName: 'foo',
+      tableName: 'rate_limits',
+    })
+
+    await dbProvider.resolver(app)
+  }).throws(
+    'Invalid connection name "foo" referenced by "config/limiter.ts" file. First register the connection inside "config/database.ts" file'
+  )
+
   test('define memory store', async ({ assert }) => {
     const storeFactory = stores.memory({})
     const store = storeFactory({ duration: '1mins', requests: 5 })

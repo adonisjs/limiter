@@ -130,9 +130,9 @@ export type LimiterRedisStoreConfig = LimiterStoreBaseConfig &
 export type LimiterDatabaseStoreConfig = LimiterStoreBaseConfig &
   LimiterConsumptionOptions & {
     /**
-     * The database to connect with
+     * The database to connect with.
      */
-    dbName: string
+    dbName?: string
 
     /**
      * The database table to use for storing keys. Defaults

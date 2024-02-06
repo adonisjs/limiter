@@ -25,7 +25,7 @@ const limiterConfig = defineConfig({
      * MYSQL or PostgreSQL database.
      */
     database: stores.database({
-      connectionName: 'main',
+      tableName: 'rate_limits'
     }),
     {{/if}}
     /**

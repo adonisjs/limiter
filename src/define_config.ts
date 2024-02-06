@@ -13,7 +13,7 @@
 import { configProvider } from '@adonisjs/core'
 import type { ConfigProvider } from '@adonisjs/core/types'
 import type { RedisConnections } from '@adonisjs/redis/types'
-import { InvalidArgumentsException } from '@adonisjs/core/exceptions'
+import { InvalidArgumentsException, RuntimeException } from '@adonisjs/core/exceptions'
 
 import debug from './debug.js'
 import LimiterMemoryStore from './stores/memory.js'
@@ -125,7 +125,7 @@ export const stores: {
    */
   database: (
     config: Omit<LimiterDatabaseStoreConfig, keyof LimiterConsumptionOptions> & {
-      connectionName: string
+      connectionName?: string
     }
   ) => ConfigProvider<LimiterManagerStoreFactory>
 
@@ -151,6 +151,13 @@ export const stores: {
     return configProvider.create(async (app) => {
       const db = await app.container.make('lucid.db')
       const { default: LimiterDatabaseStore } = await import('./stores/database.js')
+
+      if (config.connectionName && !db.manager.has(config.connectionName)) {
+        throw new RuntimeException(
+          `Invalid connection name "${config.connectionName}" referenced by "config/limiter.ts" file. First register the connection inside "config/database.ts" file`
+        )
+      }
+
       return (consumptionOptions) =>
         new LimiterDatabaseStore(db.connection(config.connectionName), {
           ...config,
