@@ -177,6 +177,11 @@ export interface LimiterStoreContract {
   readonly duration: number
 
   /**
+   * The duration (in seconds) for which to block the key
+   */
+  readonly blockDuration: number
+
+  /**
    * Consume 1 request for a given key. An exception is raised
    * when all the requests have already been consumed or if
    * the key is blocked.

@@ -240,11 +240,10 @@ test.group('Limiter', () => {
     }, 'Something went wrong')
     assert.equal(await limiter.remaining('ip_localhost'), 1)
 
-    assert.isTrue(
-      await limiter.penalize('ip_localhost', () => {
-        return true
-      })
-    )
+    const [, result] = await limiter.penalize('ip_localhost', () => {
+      return true
+    })
+    assert.isTrue(result)
 
     assert.isNull(await limiter.get('ip_localhost'))
   })
@@ -290,5 +289,31 @@ test.group('Limiter', () => {
     assert.instanceOf(error, ThrottleException)
     assert.equal(error?.response.remaining, 0)
     assert.equal(await limiter.remaining('ip_localhost'), 0)
+    assert.closeTo(await limiter.availableIn('ip_localhost'), 60, 5)
+  })
+
+  test('block key when all requests have been exhausted', async ({ assert }) => {
+    const redis = createRedis(['rlflx:ip_localhost']).connection()
+    const store = new LimiterRedisStore(redis, {
+      duration: '1 minute',
+      requests: 2,
+      blockDuration: '30 mins',
+    })
+
+    const limiter = new Limiter(store)
+
+    await assert.rejects(async () => {
+      await limiter.penalize('ip_localhost', () => {
+        throw new Error('Something went wrong')
+      })
+    }, 'Something went wrong')
+
+    await assert.rejects(async () => {
+      await limiter.penalize('ip_localhost', () => {
+        throw new Error('Something went wrong')
+      })
+    }, 'Something went wrong')
+
+    assert.closeTo(await limiter.availableIn('ip_localhost'), 60 * 30, 5)
   })
 })

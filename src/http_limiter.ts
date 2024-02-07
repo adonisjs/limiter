@@ -143,8 +143,9 @@ export class HttpLimiter<KnownStores extends Record<string, LimiterManagerStoreF
     /**
      * Abort when user has exhausted all the requests.
      *
-     * We still run the "consume" method when remaining count is zero, since
-     * that will trigger the block logic on the key
+     * We still run the "consume" method when consumed is same as
+     * the limit, this will allow the consume method to trigger
+     * the block logic.
      */
     if (limiterResponse && limiterResponse.consumed > limiterResponse.limit) {
       debug('requests exhausted for key "%s"', key)

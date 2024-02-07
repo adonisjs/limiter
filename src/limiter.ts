@@ -39,6 +39,13 @@ export class Limiter implements LimiterStoreContract {
     return this.#store.duration
   }
 
+  /**
+   * The duration (in seconds) for which to block the key
+   */
+  get blockDuration() {
+    return this.#store.blockDuration
+  }
+
   constructor(store: LimiterStoreContract) {
     this.#store = store
   }
@@ -76,8 +83,9 @@ export class Limiter implements LimiterStoreContract {
      * Return early when remaining requests are less than
      * zero.
      *
-     * We still run the "consume" method when remaining count is zero, since
-     * that will trigger the block logic on the key
+     * We still run the "consume" method when consumed is same as
+     * the limit, this will allow the consume method to trigger
+     * the block logic.
      */
     const response = await this.get(key)
     if (response && response.consumed > response.limit) {
@@ -118,14 +126,32 @@ export class Limiter implements LimiterStoreContract {
       return [new E_TOO_MANY_REQUESTS(response), null]
     }
 
+    let callbackResult: T
+    let callbackError: unknown
+
     try {
-      const result = await callback()
-      await this.delete(key)
-      return [null, result]
+      callbackResult = await callback()
     } catch (error) {
-      await this.increment(key)
-      throw error
+      callbackError = error
     }
+
+    /**
+     * Consume one point and block the key if there is
+     * an error.
+     */
+    if (callbackError) {
+      const { consumed, limit } = await this.increment(key)
+      if (consumed >= limit && this.blockDuration) {
+        await this.block(key, this.blockDuration)
+      }
+      throw callbackError
+    }
+
+    /**
+     * Reset key
+     */
+    await this.delete(key)
+    return [null, callbackResult!]
   }
 
   /**

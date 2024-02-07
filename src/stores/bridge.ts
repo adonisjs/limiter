@@ -48,6 +48,13 @@ export default abstract class RateLimiterBridge implements LimiterStoreContract 
     return this.rateLimiter.duration
   }
 
+  /**
+   * The duration (in seconds) for which to block the key
+   */
+  get blockDuration() {
+    return this.rateLimiter.blockDuration
+  }
+
   constructor(rateLimiter: RateLimiterStoreAbstract | RateLimiterAbstract) {
     this.rateLimiter = rateLimiter
   }
