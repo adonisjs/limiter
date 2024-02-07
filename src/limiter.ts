@@ -8,7 +8,7 @@
  */
 
 import { LimiterResponse } from './response.js'
-import { E_TOO_MANY_REQUESTS } from './errors.js'
+import { E_TOO_MANY_REQUESTS, ThrottleException } from './errors.js'
 import type { LimiterStoreContract } from './types.js'
 
 /**
@@ -105,20 +105,23 @@ export class Limiter implements LimiterStoreContract {
    *   the error
    * - Delete key, if the provided callback succeeds and return the results.
    */
-  async penalize<T>(key: string | number, callback: () => T | Promise<T>): Promise<T> {
+  async penalize<T>(
+    key: string | number,
+    callback: () => T | Promise<T>
+  ): Promise<[null, T] | [ThrottleException, null]> {
     const response = await this.get(key)
 
     /**
      * Abort when user has exhausted all the requests
      */
     if (response && response.remaining <= 0) {
-      throw new E_TOO_MANY_REQUESTS(response)
+      return [new E_TOO_MANY_REQUESTS(response), null]
     }
 
     try {
       const result = await callback()
       await this.delete(key)
-      return result
+      return [null, result]
     } catch (error) {
       await this.increment(key)
       throw error
