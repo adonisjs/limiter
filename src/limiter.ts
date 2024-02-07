@@ -191,7 +191,7 @@ export class Limiter implements LimiterStoreContract {
    * Delete all keys blocked within the memory
    */
   deleteInMemoryBlockedKeys(): void {
-    return this.#store.deleteInMemoryBlockedKeys()
+    return this.#store.deleteInMemoryBlockedKeys?.()
   }
 
   /**

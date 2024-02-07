@@ -225,7 +225,7 @@ export interface LimiterStoreContract {
   /**
    * Delete all keys blocked within the memory
    */
-  deleteInMemoryBlockedKeys(): void
+  deleteInMemoryBlockedKeys?(): void
 
   /**
    * Clear the storage database
