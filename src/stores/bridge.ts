@@ -153,9 +153,13 @@ export default abstract class RateLimiterBridge implements LimiterStoreContract 
   async set(
     key: string | number,
     requests: number,
-    duration: string | number
+    duration?: string | number
   ): Promise<LimiterResponse> {
-    const response = await this.rateLimiter.set(key, requests, string.seconds.parse(duration))
+    const response = await this.rateLimiter.set(
+      key,
+      requests,
+      duration ? string.seconds.parse(duration) : this.duration
+    )
     debug('updated key %s with requests: %s, duration: %s', key, requests, duration)
 
     /**

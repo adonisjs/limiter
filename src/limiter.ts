@@ -146,7 +146,11 @@ export class Limiter implements LimiterStoreContract {
    *
    * The duration must be a value in seconds or a string expression.
    */
-  set(key: string | number, requests: number, duration: string | number): Promise<LimiterResponse> {
+  set(
+    key: string | number,
+    requests: number,
+    duration?: string | number
+  ): Promise<LimiterResponse> {
     return this.#store.set(key, requests, duration)
   }
 

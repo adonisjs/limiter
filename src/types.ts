@@ -210,7 +210,7 @@ export interface LimiterStoreContract {
    *
    * The duration must be a value in seconds or a string expression.
    */
-  set(key: string | number, requests: number, duration: string | number): Promise<LimiterResponse>
+  set(key: string | number, requests: number, duration?: string | number): Promise<LimiterResponse>
 
   /**
    * Delete a given key

@@ -13,6 +13,7 @@ import { test } from '@japa/runner'
 import { createRedis } from './helpers.js'
 import { Limiter } from '../src/limiter.js'
 import LimiterRedisStore from '../src/stores/redis.js'
+import { ThrottleException } from '../src/errors.js'
 
 test.group('Limiter', () => {
   test('proxy store methods', async ({ assert }) => {
@@ -237,7 +238,6 @@ test.group('Limiter', () => {
         throw new Error('Something went wrong')
       })
     }, 'Something went wrong')
-
     assert.equal(await limiter.remaining('ip_localhost'), 1)
 
     assert.isTrue(
@@ -249,7 +249,10 @@ test.group('Limiter', () => {
     assert.isNull(await limiter.get('ip_localhost'))
   })
 
-  test('throw error via penalize when all requests has been exhausted', async ({ assert }) => {
+  test('return error via penalize when all requests has been exhausted', async ({
+    assert,
+    expectTypeOf,
+  }) => {
     const redis = createRedis(['rlflx:ip_localhost']).connection()
     const store = new LimiterRedisStore(redis, {
       duration: '1 minute',
@@ -263,17 +266,29 @@ test.group('Limiter', () => {
         throw new Error('Something went wrong')
       })
     }, 'Something went wrong')
+
     await assert.rejects(async () => {
       await limiter.penalize('ip_localhost', () => {
         throw new Error('Something went wrong')
       })
     }, 'Something went wrong')
-    await assert.rejects(async () => {
-      await limiter.penalize('ip_localhost', () => {
-        throw new Error('Something went wrong')
-      })
-    }, 'Too many requests')
 
+    const [error, user] = await limiter.penalize('ip_localhost', () => {
+      return {
+        id: 1,
+      }
+    })
+
+    if (error) {
+      expectTypeOf(error).toEqualTypeOf<ThrottleException>()
+      expectTypeOf(user).toEqualTypeOf<null>()
+    } else {
+      expectTypeOf(user).toEqualTypeOf<{ id: number }>()
+      expectTypeOf(error).toEqualTypeOf<null>()
+    }
+
+    assert.instanceOf(error, ThrottleException)
+    assert.equal(error?.response.remaining, 0)
     assert.equal(await limiter.remaining('ip_localhost'), 0)
   })
 })
