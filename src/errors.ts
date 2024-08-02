@@ -60,7 +60,7 @@ export class ThrottleException extends Exception {
       'X-RateLimit-Limit': this.response.limit,
       'X-RateLimit-Remaining': this.response.remaining,
       'Retry-After': this.response.availableIn,
-      'X-RateLimit-Reset': new Date(Date.now() + this.response.availableIn * 1000),
+      'X-RateLimit-Reset': new Date(Date.now() + this.response.availableIn * 1000).toISOString(),
     }
   }
 
