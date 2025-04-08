@@ -163,7 +163,7 @@ test.group('Define config', () => {
 
     const limiter = new LimiterManager(await config.resolver(app))
     expectTypeOf(limiter.use).parameters.toMatchTypeOf<
-      ['redis' | 'db' | 'memory' | undefined, LimiterConsumptionOptions]
+      [LimiterConsumptionOptions] | ['redis' | 'db' | 'memory', LimiterConsumptionOptions]
     >()
     expectTypeOf(limiter.use).returns.toMatchTypeOf<Limiter>()
 
