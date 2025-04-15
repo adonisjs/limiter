@@ -17,7 +17,7 @@
   },
   "scripts": {
     "pretest": "npm run lint && del-cli coverage",
-    "test": "npm run test:pg && npm run test:mysql && mkdir coverage/tmp && cp -r coverage/*/tmp/. coverage/tmp && c8 report",
+    "test": "npm run test:pg && npm run test:mysql && npm run test:sqlite && mkdir coverage/tmp && cp -r coverage/*/tmp/. coverage/tmp && c8 report",
     "test:pg": "cross-env DB=pg c8 --reporter=json --report-dir=coverage/pg npm run quick:test",
     "test:mysql": "cross-env DB=mysql c8 --reporter=json --report-dir=coverage/mysql npm run quick:test",
     "test:sqlite": "cross-env DB=sqlite c8 --reporter=json --report-dir=coverage/sqlite npm run quick:test",
