@@ -162,10 +162,10 @@ test.group('Define config', () => {
     })
 
     const limiter = new LimiterManager(await config.resolver(app))
-    expectTypeOf(limiter.use).parameters.toMatchTypeOf<
-      ['redis' | 'db' | 'memory' | undefined, LimiterConsumptionOptions]
+    expectTypeOf(limiter.use).parameters.toEqualTypeOf<
+      [LimiterConsumptionOptions] | ['redis' | 'db' | 'memory', LimiterConsumptionOptions]
     >()
-    expectTypeOf(limiter.use).returns.toMatchTypeOf<Limiter>()
+    expectTypeOf(limiter.use).returns.toEqualTypeOf<Limiter>()
 
     assert.isNull(
       await limiter.use('redis', { duration: '1 min', requests: 5 }).get('ip_localhost')

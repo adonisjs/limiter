@@ -86,3 +86,29 @@ jobs:
         run: npx playwright install --with-deps
       - name: Run Mysql Tests
         run: npm run test:${{ matrix.mysql.command }}
+  test-sqlite:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20, 22]
+    services:
+      redis:
+        image: redis
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+      - name: Install
+        run: npm install
+      - name: Run SQLite Tests
+        run: npm run test:sqlite

@@ -14,18 +14,18 @@ import { createDatabase, createTables } from '../helpers.js'
 import LimiterDatabaseStore from '../../src/stores/database.js'
 
 test.group('Limiter database store | wrapper', () => {
-  test('throw error when trying to use connection other than mysql or pg', async () => {
+  test('throw error when trying to use connection other than mysql, sqlite or pg', async () => {
     const db = createDatabase()
     await createTables(db)
 
-    new LimiterDatabaseStore(db.connection('sqlite'), {
+    new LimiterDatabaseStore(db.connection('libsql'), {
       dbName: 'limiter',
       tableName: 'rate_limits',
       duration: '1 minute',
       requests: 5,
     })
   }).throws(
-    'Unsupported database "better-sqlite3". The limiter can only work with PostgreSQL and MySQL databases'
+    'Unsupported database "libsql". The limiter can only work with PostgreSQL, MySQL, and SQLite databases'
   )
 
   test('define readonly properties', async ({ assert }) => {
@@ -209,7 +209,10 @@ test.group('Limiter database store | wrapper | consume', () => {
     try {
       await store.consume('ip_localhost')
     } catch (error) {
-      assert.match(error.message, /relation "foo" does not exist|Table 'limiter.foo' doesn't exist/)
+      assert.match(
+        error.message,
+        /relation "foo" does not exist|Table 'limiter.foo' doesn't exist|no such table: foo/
+      )
     }
   })
 })

@@ -43,7 +43,13 @@ export function createDatabase() {
         sqlite: {
           client: 'better-sqlite3',
           connection: {
-            filename: join(test.context.fs.basePath, 'db.sqlite3'),
+            filename: ':memory:',
+          },
+        },
+        libsql: {
+          client: 'libsql',
+          connection: {
+            filename: join(test.context.fs.basePath, `file:libsql.db`),
           },
         },
         pg: {
