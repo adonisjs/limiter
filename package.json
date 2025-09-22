@@ -50,6 +50,7 @@
     "@japa/file-system": "^2.3.2",
     "@japa/runner": "^4.4.0",
     "@libsql/sqlite3": "^0.3.1",
+    "@poppinss/ts-exec": "^1.4.1",
     "@release-it/conventional-changelog": "^10.0.1",
     "@types/node": "^24.5.2",
     "@types/sinon": "^17.0.4",
