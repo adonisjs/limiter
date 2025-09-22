@@ -7,8 +7,8 @@
  * file that was distributed with this source code.
  */
 
-import { ConfigProvider } from '@adonisjs/core/types'
-import { LimiterManager } from './limiter_manager.ts'
+import { type ConfigProvider } from '@adonisjs/core/types'
+import { type LimiterManager } from './limiter_manager.ts'
 import type { LimiterResponse } from './response.ts'
 
 /**

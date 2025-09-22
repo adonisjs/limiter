@@ -7,8 +7,8 @@
  * file that was distributed with this source code.
  */
 
-import { LimiterResponse } from './response.ts'
-import { E_TOO_MANY_REQUESTS, ThrottleException } from './errors.ts'
+import { type LimiterResponse } from './response.ts'
+import { E_TOO_MANY_REQUESTS, type ThrottleException } from './errors.ts'
 import type { LimiterStoreContract } from './types.ts'
 
 /**

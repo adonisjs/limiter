@@ -13,7 +13,7 @@ import { getActiveTest } from '@japa/runner'
 import { Emitter } from '@adonisjs/core/events'
 import { Database } from '@adonisjs/lucid/database'
 import { AppFactory } from '@adonisjs/core/factories/app'
-import { RedisConnection, RedisManager } from '@adonisjs/redis'
+import { type RedisConnection, RedisManager } from '@adonisjs/redis'
 import { LoggerFactory } from '@adonisjs/core/factories/logger'
 
 configDotenv()

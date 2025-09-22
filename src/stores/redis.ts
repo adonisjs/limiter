@@ -9,7 +9,7 @@
 
 import string from '@adonisjs/core/helpers/string'
 import { RateLimiterRedis } from 'rate-limiter-flexible'
-import { RedisClusterConnection, RedisConnection } from '@adonisjs/redis'
+import { RedisClusterConnection, type RedisConnection } from '@adonisjs/redis'
 
 import debug from '../debug.ts'
 import RateLimiterBridge from './bridge.ts'

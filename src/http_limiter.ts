@@ -11,7 +11,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { RuntimeException } from '@adonisjs/core/exceptions'
 
 import debug from './debug.ts'
-import { LimiterResponse } from './response.ts'
+import { type LimiterResponse } from './response.ts'
 import type { LimiterManager } from './limiter_manager.ts'
 import { E_TOO_MANY_REQUESTS, type ThrottleException } from './errors.ts'
 import type { LimiterConsumptionOptions, LimiterManagerStoreFactory } from './types.ts'

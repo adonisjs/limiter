@@ -8,7 +8,7 @@
  */
 
 import app from '@adonisjs/core/services/app'
-import { LimiterService } from '../src/types.ts'
+import { type LimiterService } from '../src/types.ts'
 
 let limiter: LimiterService
 

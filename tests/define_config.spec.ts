@@ -8,11 +8,11 @@
  */
 
 import { test } from '@japa/runner'
-import { RedisService } from '@adonisjs/redis/types'
-import { ApplicationService } from '@adonisjs/core/types'
+import { type RedisService } from '@adonisjs/redis/types'
+import { type ApplicationService } from '@adonisjs/core/types'
 import { AppFactory } from '@adonisjs/core/factories/app'
 
-import { Limiter } from '../src/limiter.ts'
+import { type Limiter } from '../src/limiter.ts'
 import LimiterRedisStore from '../src/stores/redis.ts'
 import LimiterMemoryStore from '../src/stores/memory.ts'
 import { LimiterManager } from '../src/limiter_manager.ts'

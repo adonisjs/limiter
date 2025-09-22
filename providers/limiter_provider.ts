@@ -8,7 +8,7 @@
  */
 
 import { configProvider } from '@adonisjs/core'
-import { ApplicationService } from '@adonisjs/core/types'
+import { type ApplicationService } from '@adonisjs/core/types'
 import { RuntimeException } from '@adonisjs/core/exceptions'
 
 import { LimiterManager } from '../index.ts'
