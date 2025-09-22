@@ -8,8 +8,8 @@
  */
 
 import { ConfigProvider } from '@adonisjs/core/types'
-import { LimiterManager } from './limiter_manager.js'
-import type { LimiterResponse } from './response.js'
+import { LimiterManager } from './limiter_manager.ts'
+import type { LimiterResponse } from './response.ts'
 
 /**
  * The base configuration shared across all the stores.

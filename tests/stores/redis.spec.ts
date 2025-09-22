@@ -9,10 +9,10 @@
 
 import { test } from '@japa/runner'
 
-import { createRedis } from '../helpers.js'
-import { LimiterResponse } from '../../src/response.js'
-import { E_TOO_MANY_REQUESTS } from '../../src/errors.js'
-import LimiterRedisStore from '../../src/stores/redis.js'
+import { createRedis } from '../helpers.ts'
+import { LimiterResponse } from '../../src/response.ts'
+import { E_TOO_MANY_REQUESTS } from '../../src/errors.ts'
+import LimiterRedisStore from '../../src/stores/redis.ts'
 
 test.group('Limiter redis store | wrapper', () => {
   test('define readonly properties', async ({ assert }) => {

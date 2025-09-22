@@ -7,9 +7,9 @@
  * file that was distributed with this source code.
  */
 
-import { LimiterResponse } from './response.js'
-import { E_TOO_MANY_REQUESTS, ThrottleException } from './errors.js'
-import type { LimiterStoreContract } from './types.js'
+import { LimiterResponse } from './response.ts'
+import { E_TOO_MANY_REQUESTS, ThrottleException } from './errors.ts'
+import type { LimiterStoreContract } from './types.ts'
 
 /**
  * Limiter acts as an adapter on top of the limiter

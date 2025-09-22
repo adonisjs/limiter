@@ -10,9 +10,9 @@
 import string from '@adonisjs/core/helpers/string'
 import { type IRateLimiterOptions, RateLimiterMemory } from 'rate-limiter-flexible'
 
-import debug from '../debug.js'
-import RateLimiterBridge from './bridge.js'
-import type { LimiterMemoryStoreConfig } from '../types.js'
+import debug from '../debug.ts'
+import RateLimiterBridge from './bridge.ts'
+import type { LimiterMemoryStoreConfig } from '../types.ts'
 
 /**
  * Limiter memory store wraps the "RateLimiterMemory" implementation

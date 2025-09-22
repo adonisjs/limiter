@@ -10,9 +10,9 @@
 import { test } from '@japa/runner'
 import { HttpContextFactory } from '@adonisjs/core/factories/http'
 
-import { createRedis } from './helpers.js'
-import LimiterRedisStore from '../src/stores/redis.js'
-import { LimiterManager } from '../src/limiter_manager.js'
+import { createRedis } from './helpers.ts'
+import LimiterRedisStore from '../src/stores/redis.ts'
+import { LimiterManager } from '../src/limiter_manager.ts'
 
 test.group('Throttle middleware', () => {
   test('throttle requests using the middleware', async ({ assert }) => {

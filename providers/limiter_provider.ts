@@ -11,8 +11,8 @@ import { configProvider } from '@adonisjs/core'
 import { ApplicationService } from '@adonisjs/core/types'
 import { RuntimeException } from '@adonisjs/core/exceptions'
 
-import { LimiterManager } from '../index.js'
-import type { LimiterService } from '../src/types.js'
+import { LimiterManager } from '../index.ts'
+import type { LimiterService } from '../src/types.ts'
 
 declare module '@adonisjs/core/types' {
   export interface ContainerBindings {

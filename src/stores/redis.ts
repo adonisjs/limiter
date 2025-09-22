@@ -11,9 +11,9 @@ import string from '@adonisjs/core/helpers/string'
 import { RateLimiterRedis } from 'rate-limiter-flexible'
 import { RedisClusterConnection, RedisConnection } from '@adonisjs/redis'
 
-import debug from '../debug.js'
-import RateLimiterBridge from './bridge.js'
-import type { LimiterRedisStoreConfig } from '../types.js'
+import debug from '../debug.ts'
+import RateLimiterBridge from './bridge.ts'
+import type { LimiterRedisStoreConfig } from '../types.ts'
 
 /**
  * Limiter redis store wraps the "RateLimiterRedis" implementation

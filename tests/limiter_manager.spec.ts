@@ -9,11 +9,11 @@
 
 import { test } from '@japa/runner'
 
-import { createRedis } from './helpers.js'
-import { Limiter } from '../src/limiter.js'
-import LimiterRedisStore from '../src/stores/redis.js'
-import { LimiterManager } from '../src/limiter_manager.js'
-import LimiterMemoryStore from '../src/stores/memory.js'
+import { createRedis } from './helpers.ts'
+import { Limiter } from '../src/limiter.ts'
+import LimiterRedisStore from '../src/stores/redis.ts'
+import { LimiterManager } from '../src/limiter_manager.ts'
+import LimiterMemoryStore from '../src/stores/memory.ts'
 
 test.group('Limiter manager', () => {
   test('create limiter instances using manager', async ({ assert }) => {

@@ -15,15 +15,15 @@ import type { ConfigProvider } from '@adonisjs/core/types'
 import type { RedisConnections } from '@adonisjs/redis/types'
 import { InvalidArgumentsException, RuntimeException } from '@adonisjs/core/exceptions'
 
-import debug from './debug.js'
-import LimiterMemoryStore from './stores/memory.js'
+import debug from './debug.ts'
+import LimiterMemoryStore from './stores/memory.ts'
 import type {
   LimiterRedisStoreConfig,
   LimiterMemoryStoreConfig,
   LimiterManagerStoreFactory,
   LimiterDatabaseStoreConfig,
   LimiterConsumptionOptions,
-} from './types.js'
+} from './types.ts'
 
 /**
  * Helper to define limiter config. This function exports a

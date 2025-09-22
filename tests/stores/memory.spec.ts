@@ -8,9 +8,9 @@
  */
 
 import { test } from '@japa/runner'
-import { LimiterResponse } from '../../src/response.js'
-import { E_TOO_MANY_REQUESTS } from '../../src/errors.js'
-import LimiterMemoryStore from '../../src/stores/memory.js'
+import { LimiterResponse } from '../../src/response.ts'
+import { E_TOO_MANY_REQUESTS } from '../../src/errors.ts'
+import LimiterMemoryStore from '../../src/stores/memory.ts'
 
 test.group('Limiter memory store | wrapper', () => {
   test('define readonly properties', async ({ assert }) => {

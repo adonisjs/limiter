@@ -8,10 +8,10 @@
  */
 
 import { test } from '@japa/runner'
-import { LimiterResponse } from '../../src/response.js'
-import { E_TOO_MANY_REQUESTS } from '../../src/errors.js'
-import { createDatabase, createTables } from '../helpers.js'
-import LimiterDatabaseStore from '../../src/stores/database.js'
+import { LimiterResponse } from '../../src/response.ts'
+import { E_TOO_MANY_REQUESTS } from '../../src/errors.ts'
+import { createDatabase, createTables } from '../helpers.ts'
+import LimiterDatabaseStore from '../../src/stores/database.ts'
 
 test.group('Limiter database store | wrapper', () => {
   test('throw error when trying to use connection other than mysql, sqlite or pg', async () => {

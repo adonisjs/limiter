@@ -8,8 +8,8 @@
  */
 
 import { test } from '@japa/runner'
-import { E_TOO_MANY_REQUESTS } from '../src/errors.js'
-import { LimiterResponse } from '../src/response.js'
+import { E_TOO_MANY_REQUESTS } from '../src/errors.ts'
+import { LimiterResponse } from '../src/response.ts'
 import { I18nManagerFactory } from '@adonisjs/i18n/factories'
 import { HttpContextFactory } from '@adonisjs/core/factories/http'
 

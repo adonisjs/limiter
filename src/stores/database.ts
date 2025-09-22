@@ -12,9 +12,9 @@ import { RuntimeException } from '@adonisjs/core/exceptions'
 import type { DialectContract, QueryClientContract } from '@adonisjs/lucid/types/database'
 import { RateLimiterMySQL, RateLimiterPostgres, RateLimiterSQLite } from 'rate-limiter-flexible'
 
-import debug from '../debug.js'
-import RateLimiterBridge from './bridge.js'
-import type { LimiterDatabaseStoreConfig } from '../types.js'
+import debug from '../debug.ts'
+import RateLimiterBridge from './bridge.ts'
+import type { LimiterDatabaseStoreConfig } from '../types.ts'
 
 const SUPPORTED_CLIENTS = [
   'mysql',

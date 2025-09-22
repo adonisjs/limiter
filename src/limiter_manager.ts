@@ -12,10 +12,10 @@ import type { HttpContext } from '@adonisjs/core/http'
 import type { MiddlewareFn } from '@adonisjs/core/types/http'
 import { RuntimeException } from '@adonisjs/core/exceptions'
 
-import debug from './debug.js'
-import { Limiter } from './limiter.js'
-import { HttpLimiter } from './http_limiter.js'
-import type { LimiterConsumptionOptions, LimiterManagerStoreFactory } from './types.js'
+import debug from './debug.ts'
+import { Limiter } from './limiter.ts'
+import { HttpLimiter } from './http_limiter.ts'
+import type { LimiterConsumptionOptions, LimiterManagerStoreFactory } from './types.ts'
 
 /**
  * Limiter manager is used to manage multiple rate limiters

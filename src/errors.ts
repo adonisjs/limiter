@@ -11,7 +11,7 @@ import type { I18n } from '@adonisjs/i18n'
 import { Exception } from '@adonisjs/core/exceptions'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import type { LimiterResponse } from './response.js'
+import type { LimiterResponse } from './response.ts'
 
 /**
  * Throttle exception is raised when the user has exceeded

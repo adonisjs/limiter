@@ -10,10 +10,10 @@
 import sinon from 'sinon'
 import { test } from '@japa/runner'
 
-import { createRedis } from './helpers.js'
-import { Limiter } from '../src/limiter.js'
-import LimiterRedisStore from '../src/stores/redis.js'
-import { ThrottleException } from '../src/errors.js'
+import { createRedis } from './helpers.ts'
+import { Limiter } from '../src/limiter.ts'
+import LimiterRedisStore from '../src/stores/redis.ts'
+import { ThrottleException } from '../src/errors.ts'
 
 test.group('Limiter', () => {
   test('proxy store methods', async ({ assert }) => {

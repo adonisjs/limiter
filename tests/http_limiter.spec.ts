@@ -10,10 +10,10 @@
 import { test } from '@japa/runner'
 import { HttpContextFactory } from '@adonisjs/core/factories/http'
 
-import { createRedis } from './helpers.js'
-import { HttpLimiter } from '../src/http_limiter.js'
-import LimiterRedisStore from '../src/stores/redis.js'
-import { LimiterManager } from '../src/limiter_manager.js'
+import { createRedis } from './helpers.ts'
+import { HttpLimiter } from '../src/http_limiter.ts'
+import LimiterRedisStore from '../src/stores/redis.ts'
+import { LimiterManager } from '../src/limiter_manager.ts'
 
 test.group('Http limiter', () => {
   test('define http limiter', async ({ assert }) => {

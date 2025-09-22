@@ -11,8 +11,8 @@ import { test } from '@japa/runner'
 import { IgnitorFactory } from '@adonisjs/core/factories'
 import type { RedisService } from '@adonisjs/redis/types'
 
-import { createRedis } from './helpers.js'
-import { LimiterManager, defineConfig, stores } from '../index.js'
+import { createRedis } from './helpers.ts'
+import { LimiterManager, defineConfig, stores } from '../index.ts'
 
 const BASE_URL = new URL('./tmp/', import.meta.url)
 const IMPORTER = (filePath: string) => {

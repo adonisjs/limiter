@@ -12,14 +12,14 @@ import { RedisService } from '@adonisjs/redis/types'
 import { ApplicationService } from '@adonisjs/core/types'
 import { AppFactory } from '@adonisjs/core/factories/app'
 
-import { Limiter } from '../src/limiter.js'
-import LimiterRedisStore from '../src/stores/redis.js'
-import LimiterMemoryStore from '../src/stores/memory.js'
-import { LimiterManager } from '../src/limiter_manager.js'
-import LimiterDatabaseStore from '../src/stores/database.js'
-import { defineConfig, stores } from '../src/define_config.js'
-import type { LimiterConsumptionOptions } from '../src/types.js'
-import { createDatabase, createRedis, createTables } from './helpers.js'
+import { Limiter } from '../src/limiter.ts'
+import LimiterRedisStore from '../src/stores/redis.ts'
+import LimiterMemoryStore from '../src/stores/memory.ts'
+import { LimiterManager } from '../src/limiter_manager.ts'
+import LimiterDatabaseStore from '../src/stores/database.ts'
+import { defineConfig, stores } from '../src/define_config.ts'
+import type { LimiterConsumptionOptions } from '../src/types.ts'
+import { createDatabase, createRedis, createTables } from './helpers.ts'
 
 test.group('Define config', () => {
   test('define redis store', async ({ assert }) => {
