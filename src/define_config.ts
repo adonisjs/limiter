@@ -26,12 +26,23 @@ import type {
 } from './types.ts'
 
 /**
- * Helper to define limiter config. This function exports a
- * config provider and hence you cannot access raw config
- * directly.
+ * Defines the limiter configuration for your AdonisJS application.
+ * This function returns a config provider that resolves store configurations lazily.
  *
- * Therefore use the "limiterManager.config" property to access
- * raw config.
+ * To access the resolved config at runtime, use the `limiterManager.config` property.
+ *
+ * @param config - Configuration object with default store and stores collection
+ *
+ * @example
+ * ```ts
+ * export default defineConfig({
+ *   default: 'redis',
+ *   stores: {
+ *     redis: stores.redis({}),
+ *     memory: stores.memory({})
+ *   }
+ * })
+ * ```
  */
 export function defineConfig<
   KnownStores extends Record<
@@ -107,12 +118,34 @@ export function defineConfig<
 }
 
 /**
- * Config helpers to instantiate limiter stores inside
- * an AdonisJS application
+ * Store configuration helpers to instantiate limiter stores in your AdonisJS application.
+ * Each helper returns a factory function that creates store instances with consumption options.
+ *
+ * @example
+ * ```ts
+ * export default defineConfig({
+ *   default: 'redis',
+ *   stores: {
+ *     redis: stores.redis({ connectionName: 'main' }),
+ *     database: stores.database({ tableName: 'rate_limits' }),
+ *     memory: stores.memory({})
+ *   }
+ * })
+ * ```
  */
 export const stores: {
   /**
-   * Configure redis limiter store
+   * Configures a Redis-backed limiter store.
+   *
+   * @param config - Redis store configuration
+   *
+   * @example
+   * ```ts
+   * stores.redis({
+   *   connectionName: 'main',
+   *   keyPrefix: 'limiter'
+   * })
+   * ```
    */
   redis: (
     config: Omit<LimiterRedisStoreConfig, keyof LimiterConsumptionOptions> & {
@@ -121,7 +154,17 @@ export const stores: {
   ) => ConfigProvider<LimiterManagerStoreFactory>
 
   /**
-   * Configure database limiter store
+   * Configures a database-backed limiter store. Supports PostgreSQL, MySQL, and SQLite.
+   *
+   * @param config - Database store configuration
+   *
+   * @example
+   * ```ts
+   * stores.database({
+   *   tableName: 'rate_limits',
+   *   connectionName: 'postgres'
+   * })
+   * ```
    */
   database: (
     config: Omit<LimiterDatabaseStoreConfig, keyof LimiterConsumptionOptions> & {
@@ -130,7 +173,16 @@ export const stores: {
   ) => ConfigProvider<LimiterManagerStoreFactory>
 
   /**
-   * Configure memory limiter store
+   * Configures an in-memory limiter store. Useful for testing or single-instance applications.
+   *
+   * @param config - Memory store configuration
+   *
+   * @example
+   * ```ts
+   * stores.memory({
+   *   keyPrefix: 'limiter'
+   * })
+   * ```
    */
   memory: (
     config: Omit<LimiterMemoryStoreConfig, keyof LimiterConsumptionOptions>

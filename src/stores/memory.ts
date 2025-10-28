@@ -15,8 +15,10 @@ import RateLimiterBridge from './bridge.ts'
 import type { LimiterMemoryStoreConfig } from '../types.ts'
 
 /**
- * Limiter memory store wraps the "RateLimiterMemory" implementation
- * from the "rate-limiter-flixible" package.
+ * In-memory limiter store that keeps rate limit data in process memory.
+ * Suitable for single-instance applications or testing. Data is lost on process restart.
+ *
+ * Wraps the RateLimiterMemory implementation from rate-limiter-flexible.
  */
 export default class LimiterMemoryStore extends RateLimiterBridge {
   #config: IRateLimiterOptions
@@ -40,8 +42,8 @@ export default class LimiterMemoryStore extends RateLimiterBridge {
   }
 
   /**
-   * Clears the existing memory store to reset
-   * rate limits
+   * Clears the entire memory store, removing all rate limit data.
+   * Creates a fresh store instance with the same configuration.
    */
   async clear() {
     debug('clearing memory store')

@@ -16,8 +16,10 @@ import RateLimiterBridge from './bridge.ts'
 import type { LimiterRedisStoreConfig } from '../types.ts'
 
 /**
- * Limiter redis store wraps the "RateLimiterRedis" implementation
- * from the "rate-limiter-flixible" package.
+ * Redis-backed limiter store that persists rate limit data in Redis.
+ * Ideal for distributed applications running across multiple instances.
+ *
+ * Wraps the RateLimiterRedis implementation from rate-limiter-flexible.
  */
 export default class LimiterRedisStore extends RateLimiterBridge {
   #client: RedisConnection | RedisClusterConnection
@@ -49,11 +51,10 @@ export default class LimiterRedisStore extends RateLimiterBridge {
   }
 
   /**
-   * Flushes the redis database to clear existing
-   * rate limits.
+   * Flushes the Redis database to clear all rate limit data.
    *
-   * Make sure to use a separate db for store rate limits
-   * as this method flushes the entire database
+   * **Warning**: This flushes the entire database. Use a dedicated Redis database
+   * for rate limiting to avoid clearing other data.
    */
   async clear() {
     this.deleteInMemoryBlockedKeys()

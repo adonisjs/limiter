@@ -20,11 +20,11 @@ import { E_TOO_MANY_REQUESTS } from '../errors.ts'
 import type { LimiterStoreContract } from '../types.ts'
 
 /**
- * The bridget store acts as a bridge between the "rate-limiter-flexible"
- * package and the AdonisJS limiter store.
+ * Bridge class that adapts rate-limiter-flexible stores to work with AdonisJS limiter.
+ * This class provides a consistent interface for all limiter stores.
  *
- * If you are wrapping an existing "rate-limiter-flexible" store, then you
- * must inherit your implementation from this class.
+ * When creating custom stores that wrap rate-limiter-flexible implementations,
+ * extend this class to inherit the standard AdonisJS limiter behavior.
  */
 export default abstract class RateLimiterBridge implements LimiterStoreContract {
   protected rateLimiter: RateLimiterStoreAbstract | RateLimiterAbstract
@@ -60,13 +60,15 @@ export default abstract class RateLimiterBridge implements LimiterStoreContract 
   }
 
   /**
-   * Clear database
+   * Clears the store database, removing all rate limit data.
+   * Implementation varies by store type.
    */
   abstract clear(): Promise<void>
 
   /**
-   * Makes LimiterResponse from "node-rate-limiter-flexible" response
-   * object
+   * Transforms a rate-limiter-flexible response into an AdonisJS LimiterResponse.
+   *
+   * @param response - Raw response from rate-limiter-flexible
    */
   protected makeLimiterResponse(response: RateLimiterRes): LimiterResponse {
     return new LimiterResponse({
@@ -78,9 +80,16 @@ export default abstract class RateLimiterBridge implements LimiterStoreContract 
   }
 
   /**
-   * Consume 1 request for a given key. An exception is raised
-   * when all the requests have already been consumed or if
-   * the key is blocked.
+   * Consumes one request for the given key. Throws a ThrottleException
+   * when the rate limit is exceeded or the key is blocked.
+   *
+   * @param key - Unique identifier for the rate limit (e.g., user ID, IP address)
+   *
+   * @example
+   * ```ts
+   * const response = await limiter.consume('user:123')
+   * console.log(`Remaining: ${response.remaining}`)
+   * ```
    */
   async consume(key: string | number): Promise<LimiterResponse> {
     try {
@@ -98,8 +107,15 @@ export default abstract class RateLimiterBridge implements LimiterStoreContract 
   }
 
   /**
-   * Increment the number of consumed requests for a given key.
-   * No errors are thrown when limit has reached
+   * Increments the consumed request count for the given key.
+   * Unlike consume(), this method does not throw when the limit is reached.
+   *
+   * @param key - Unique identifier for the rate limit
+   *
+   * @example
+   * ```ts
+   * const response = await limiter.increment('user:123')
+   * ```
    */
   async increment(key: string | number): Promise<LimiterResponse> {
     const response = await this.rateLimiter.penalty(key, 1)
@@ -109,7 +125,15 @@ export default abstract class RateLimiterBridge implements LimiterStoreContract 
   }
 
   /**
-   * Decrement the number of consumed requests for a given key.
+   * Decrements the consumed request count for the given key.
+   * Will not decrement below zero.
+   *
+   * @param key - Unique identifier for the rate limit
+   *
+   * @example
+   * ```ts
+   * const response = await limiter.decrement('user:123')
+   * ```
    */
   async decrement(key: string | number): Promise<LimiterResponse> {
     const existingKey = await this.rateLimiter.get(key)
@@ -138,8 +162,16 @@ export default abstract class RateLimiterBridge implements LimiterStoreContract 
   }
 
   /**
-   * Block a given key for the given duration. The duration must be
-   * a value in seconds or a string expression.
+   * Blocks the given key for the specified duration, preventing any requests.
+   *
+   * @param key - Unique identifier for the rate limit
+   * @param duration - Block duration in seconds or as a time expression (e.g., '5 mins')
+   *
+   * @example
+   * ```ts
+   * await limiter.block('user:123', '10 mins')
+   * await limiter.block('ip:192.168.1.1', 600)
+   * ```
    */
   async block(key: string | number, duration: string | number): Promise<LimiterResponse> {
     const response = await this.rateLimiter.block(key, string.seconds.parse(duration))
@@ -148,14 +180,17 @@ export default abstract class RateLimiterBridge implements LimiterStoreContract 
   }
 
   /**
-   * Manually set the number of requests exhausted for
-   * a given key for the given time duration.
+   * Manually sets the number of consumed requests for a given key.
    *
-   * For example: "ip_127.0.0.1" has made "20 requests" in "1 minute".
-   * Now, if you allow 25 requests in 1 minute, then only 5 requests
-   * are left.
+   * @param key - Unique identifier for the rate limit
+   * @param requests - Number of requests consumed
+   * @param duration - Optional duration in seconds or time expression
    *
-   * The duration must be a value in seconds or a string expression.
+   * @example
+   * ```ts
+   * // Set that user has consumed 20 requests out of 25 allowed
+   * await limiter.set('user:123', 20, '1 minute')
+   * ```
    */
   async set(
     key: string | number,
@@ -184,7 +219,14 @@ export default abstract class RateLimiterBridge implements LimiterStoreContract 
   }
 
   /**
-   * Delete a given key
+   * Deletes the given key, resetting its rate limit state.
+   *
+   * @param key - Unique identifier for the rate limit
+   *
+   * @example
+   * ```ts
+   * await limiter.delete('user:123')
+   * ```
    */
   delete(key: string | number): Promise<boolean> {
     debug('deleting key %s', key)
@@ -192,7 +234,8 @@ export default abstract class RateLimiterBridge implements LimiterStoreContract 
   }
 
   /**
-   * Delete all keys blocked within the memory
+   * Deletes all keys that are blocked in memory.
+   * Only applicable for stores with in-memory blocking enabled.
    */
   deleteInMemoryBlockedKeys(): void {
     if ('deleteInMemoryBlockedAll' in this.rateLimiter) {
@@ -201,8 +244,17 @@ export default abstract class RateLimiterBridge implements LimiterStoreContract 
   }
 
   /**
-   * Get limiter response for a given key. Returns null when
-   * key doesn't exist.
+   * Retrieves the current rate limit state for the given key.
+   *
+   * @param key - Unique identifier for the rate limit
+   *
+   * @example
+   * ```ts
+   * const response = await limiter.get('user:123')
+   * if (response) {
+   *   console.log(`Remaining: ${response.remaining}`)
+   * }
+   * ```
    */
   async get(key: string | number): Promise<LimiterResponse | null> {
     const response = await this.rateLimiter.get(key)

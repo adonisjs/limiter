@@ -17,9 +17,8 @@ import { E_TOO_MANY_REQUESTS, type ThrottleException } from './errors.ts'
 import type { LimiterConsumptionOptions, LimiterManagerStoreFactory } from './types.ts'
 
 /**
- * HttpLimiter is a special type of limiter instance created specifically
- * for HTTP requests. It exposes a single method to throttle the request
- * using the request ip address or the pre-defined unique key.
+ * HTTP rate limiter with a fluent API for configuring rate limiting on HTTP requests.
+ * Automatically uses the request IP address as the key unless a custom key is specified.
  */
 export class HttpLimiter<KnownStores extends Record<string, LimiterManagerStoreFactory>> {
   /**
@@ -56,8 +55,17 @@ export class HttpLimiter<KnownStores extends Record<string, LimiterManagerStoreF
   }
 
   /**
-   * Specify the store you want to use during
-   * the request
+   * Specifies which store to use for this rate limiter.
+   *
+   * @param store - Name of the configured store
+   *
+   * @example
+   * ```ts
+   * limiter
+   *   .allowRequests(100)
+   *   .every('1 hour')
+   *   .store('redis')
+   * ```
    */
   store(store: keyof KnownStores) {
     this.#store = store
@@ -65,7 +73,14 @@ export class HttpLimiter<KnownStores extends Record<string, LimiterManagerStoreF
   }
 
   /**
-   * Specify the number of requests to allow
+   * Sets the number of requests to allow during the specified duration.
+   *
+   * @param requests - Maximum number of requests
+   *
+   * @example
+   * ```ts
+   * limiter.allowRequests(100)
+   * ```
    */
   allowRequests(requests: number) {
     this.#options.requests = requests
@@ -73,10 +88,15 @@ export class HttpLimiter<KnownStores extends Record<string, LimiterManagerStoreF
   }
 
   /**
-   * Specify the duration in seconds or a time expression
-   * for which the requests to allow.
+   * Sets the duration window for the rate limit.
    *
-   * For example: allowRequests(10).every('1 minute')
+   * @param duration - Duration in seconds or time expression (e.g., '1 minute', '1 hour')
+   *
+   * @example
+   * ```ts
+   * limiter.allowRequests(100).every('1 hour')
+   * limiter.allowRequests(10).every(60) // 60 seconds
+   * ```
    */
   every(duration: number | string) {
     this.#options.duration = duration
@@ -84,8 +104,18 @@ export class HttpLimiter<KnownStores extends Record<string, LimiterManagerStoreF
   }
 
   /**
-   * Specify a custom unique key to identify the user.
-   * Defaults to: request.ip()
+   * Sets a custom key to uniquely identify the requester.
+   * By default, the request IP address is used.
+   *
+   * @param key - Custom identifier (e.g., user ID, API key)
+   *
+   * @example
+   * ```ts
+   * limiter
+   *   .allowRequests(100)
+   *   .every('1 hour')
+   *   .usingKey(ctx.auth.user.id)
+   * ```
    */
   usingKey(key: string | number) {
     this.#key = key
@@ -93,7 +123,21 @@ export class HttpLimiter<KnownStores extends Record<string, LimiterManagerStoreF
   }
 
   /**
-   * Register a callback function to modify the ThrottleException.
+   * Registers a callback to customize the ThrottleException before it's thrown.
+   * Useful for setting custom error messages or translations.
+   *
+   * @param callback - Function to modify the exception
+   *
+   * @example
+   * ```ts
+   * limiter
+   *   .allowRequests(100)
+   *   .every('1 hour')
+   *   .limitExceeded((error) => {
+   *     error.setMessage('Too many requests. Please slow down!')
+   *     error.t('errors.rate_limit_exceeded')
+   *   })
+   * ```
    */
   limitExceeded(callback: (error: ThrottleException) => void) {
     this.#exceptionModifier = callback
@@ -101,9 +145,18 @@ export class HttpLimiter<KnownStores extends Record<string, LimiterManagerStoreF
   }
 
   /**
-   * Define the block duration. The key will be blocked for the
-   * specified duration after all the requests have been
-   * exhausted
+   * Sets the block duration to penalize users who exceed the rate limit.
+   * The key will be blocked for this duration after exhausting all requests.
+   *
+   * @param duration - Block duration in seconds or time expression
+   *
+   * @example
+   * ```ts
+   * limiter
+   *   .allowRequests(100)
+   *   .every('1 hour')
+   *   .blockFor('15 mins')
+   * ```
    */
   blockFor(duration: number | string): this {
     this.#options.blockDuration = duration
@@ -111,7 +164,7 @@ export class HttpLimiter<KnownStores extends Record<string, LimiterManagerStoreF
   }
 
   /**
-   * JSON representation of the HTTP limiter
+   * Returns a JSON representation of the HTTP limiter configuration.
    */
   toJSON() {
     return {
@@ -121,9 +174,17 @@ export class HttpLimiter<KnownStores extends Record<string, LimiterManagerStoreF
   }
 
   /**
-   * Throttle request using the pre-defined options. Returns
-   * LimiterResponse when request is allowed or throws
-   * an exception.
+   * Throttles the HTTP request using the configured options.
+   * Throws a ThrottleException if the rate limit is exceeded.
+   *
+   * @param prefix - Key prefix to namespace the limiter
+   * @param ctx - HTTP context
+   *
+   * @example
+   * ```ts
+   * const response = await httpLimiter.throttle('api', ctx)
+   * console.log(`Remaining: ${response.remaining}`)
+   * ```
    */
   async throttle(prefix: string, ctx: HttpContext): Promise<LimiterResponse> {
     if (!this.#options.requests || !this.#options.duration) {

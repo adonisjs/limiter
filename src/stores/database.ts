@@ -24,8 +24,11 @@ const SUPPORTED_CLIENTS = [
 ] satisfies DialectContract['name'][]
 
 /**
- * Limiter database store wraps the "RateLimiterMySQL" or "RateLimiterPostgres"
- * implementations from the "rate-limiter-flixible" package.
+ * Database-backed limiter store that persists rate limit data in a SQL database.
+ * Supports PostgreSQL, MySQL, and SQLite databases.
+ *
+ * Wraps rate-limiter-flexible database implementations (RateLimiterMySQL,
+ * RateLimiterPostgres, RateLimiterSQLite).
  */
 export default class LimiterDatabaseStore extends RateLimiterBridge {
   #config: LimiterDatabaseStoreConfig
@@ -127,9 +130,10 @@ export default class LimiterDatabaseStore extends RateLimiterBridge {
   }
 
   /**
-   * Deletes all rows from the database table. Make sure to
-   * use separate database tables for every rate limiter
-   * your configure.
+   * Truncates the database table, removing all rate limit data.
+   *
+   * **Warning**: Use a dedicated table for each limiter configuration
+   * to avoid accidentally clearing other limiter data.
    */
   async clear() {
     debug('truncating database table %s', this.#config.tableName)

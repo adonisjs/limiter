@@ -12,8 +12,8 @@ import type { LimiterStoreContract } from './types.ts'
 import { E_TOO_MANY_REQUESTS, type ThrottleException } from './errors.ts'
 
 /**
- * Limiter acts as an adapter on top of the limiter
- * stores and offers additional APIs
+ * Limiter provides a high-level API for rate limiting operations.
+ * It wraps limiter stores and adds convenience methods like attempt() and penalize().
  */
 export class Limiter implements LimiterStoreContract {
   #store: LimiterStoreContract
@@ -48,32 +48,52 @@ export class Limiter implements LimiterStoreContract {
   }
 
   /**
-   * Consume 1 request for a given key. An exception is raised
-   * when all the requests have already been consumed or if
-   * the key is blocked.
+   * Consumes one request for the given key. Throws a ThrottleException
+   * when the rate limit is exceeded or the key is blocked.
+   *
+   * @param key - Unique identifier for the rate limit
    */
   consume(key: string | number): Promise<LimiterResponse> {
     return this.#store.consume(key)
   }
 
   /**
-   * Increment the number of consumed requests for a given key.
-   * No errors are thrown when limit has reached
+   * Increments the consumed request count for the given key.
+   * Unlike consume(), this method does not throw when the limit is reached.
+   *
+   * @param key - Unique identifier for the rate limit
    */
   increment(key: string | number): Promise<LimiterResponse> {
     return this.#store.increment(key)
   }
 
   /**
-   * Decrement the number of consumed requests for a given key.
+   * Decrements the consumed request count for the given key.
+   * Will not decrement below zero.
+   *
+   * @param key - Unique identifier for the rate limit
    */
   decrement(key: string | number): Promise<LimiterResponse> {
     return this.#store.decrement(key)
   }
 
   /**
-   * Consume 1 request for a given key and execute the provided
-   * callback.
+   * Attempts to consume one request and execute the callback if successful.
+   * Returns undefined if the rate limit is exceeded.
+   *
+   * @param key - Unique identifier for the rate limit
+   * @param callback - Function to execute if rate limit allows
+   *
+   * @example
+   * ```ts
+   * const result = await limiter.attempt('user:123', async () => {
+   *   return await performExpensiveOperation()
+   * })
+   *
+   * if (!result) {
+   *   console.log('Rate limit exceeded')
+   * }
+   * ```
    */
   async attempt<T>(key: string | number, callback: () => T | Promise<T>): Promise<T | undefined> {
     /**
@@ -100,15 +120,27 @@ export class Limiter implements LimiterStoreContract {
   }
 
   /**
-   * Consume 1 request for a given key when the executed method throws
-   * an error.
+   * Executes the callback and penalizes on failure by consuming a request.
+   * Useful for rate limiting failed operations (e.g., login attempts).
    *
-   * - Check if all the requests have been exhausted. If yes, throw limiter
-   *   error.
-   * - Otherwise, execute the provided callback.
-   * - Increment the requests counter, if provided callback throws an error and rethrow
-   *   the error
-   * - Delete key, if the provided callback succeeds and return the results.
+   * - Returns error if rate limit is exhausted
+   * - Executes callback if requests are available
+   * - Increments counter and blocks key on callback failure
+   * - Resets key on callback success
+   *
+   * @param key - Unique identifier for the rate limit
+   * @param callback - Function to execute
+   *
+   * @example
+   * ```ts
+   * const [error, user] = await limiter.penalize('login:user@example.com', async () => {
+   *   return await attemptLogin(credentials)
+   * })
+   *
+   * if (error) {
+   *   throw error
+   * }
+   * ```
    */
   async penalize<T>(
     key: string | number,
@@ -152,22 +184,21 @@ export class Limiter implements LimiterStoreContract {
   }
 
   /**
-   * Block a given key for the given duration. The duration must be
-   * a value in seconds or a string expression.
+   * Blocks the given key for the specified duration, preventing any requests.
+   *
+   * @param key - Unique identifier for the rate limit
+   * @param duration - Block duration in seconds or as a time expression
    */
   block(key: string | number, duration: string | number): Promise<LimiterResponse> {
     return this.#store.block(key, duration)
   }
 
   /**
-   * Manually set the number of requests exhausted for
-   * a given key for the given time duration.
+   * Manually sets the number of consumed requests for a given key.
    *
-   * For example: "ip_127.0.0.1" has made "20 requests" in "1 minute".
-   * Now, if you allow 25 requests in 1 minute, then only 5 requests
-   * are left.
-   *
-   * The duration must be a value in seconds or a string expression.
+   * @param key - Unique identifier for the rate limit
+   * @param requests - Number of requests consumed
+   * @param duration - Optional duration in seconds or time expression
    */
   set(
     key: string | number,
@@ -178,29 +209,41 @@ export class Limiter implements LimiterStoreContract {
   }
 
   /**
-   * Delete a given key
+   * Deletes the given key, resetting its rate limit state.
+   *
+   * @param key - Unique identifier for the rate limit
    */
   delete(key: string | number): Promise<boolean> {
     return this.#store.delete(key)
   }
 
   /**
-   * Delete all keys blocked within the memory
+   * Deletes all keys that are blocked in memory.
+   * Only applicable for stores with in-memory blocking enabled.
    */
   deleteInMemoryBlockedKeys(): void {
     return this.#store.deleteInMemoryBlockedKeys?.()
   }
 
   /**
-   * Get limiter response for a given key. Returns null when
-   * key doesn't exist.
+   * Retrieves the current rate limit state for the given key.
+   *
+   * @param key - Unique identifier for the rate limit
    */
   get(key: string | number): Promise<LimiterResponse | null> {
     return this.#store.get(key)
   }
 
   /**
-   * Find the number of remaining requests for a given key
+   * Returns the number of remaining requests for the given key.
+   *
+   * @param key - Unique identifier for the rate limit
+   *
+   * @example
+   * ```ts
+   * const remaining = await limiter.remaining('user:123')
+   * console.log(`You have ${remaining} requests left`)
+   * ```
    */
   async remaining(key: string | number): Promise<number> {
     const response = await this.get(key)
@@ -212,8 +255,16 @@ export class Limiter implements LimiterStoreContract {
   }
 
   /**
-   * Find the number of seconds remaining until the key will
-   * be available for new request
+   * Returns the number of seconds until the key will be available for new requests.
+   * Returns 0 if requests are currently available.
+   *
+   * @param key - Unique identifier for the rate limit
+   *
+   * @example
+   * ```ts
+   * const seconds = await limiter.availableIn('user:123')
+   * console.log(`Try again in ${seconds} seconds`)
+   * ```
    */
   async availableIn(key: string | number): Promise<number> {
     const response = await this.get(key)
@@ -225,9 +276,16 @@ export class Limiter implements LimiterStoreContract {
   }
 
   /**
-   * Find if the current key is blocked. This method checks
-   * if the consumed points are equal to or greater than
-   * the allowed limit.
+   * Checks if the given key is currently blocked (rate limit exceeded).
+   *
+   * @param key - Unique identifier for the rate limit
+   *
+   * @example
+   * ```ts
+   * if (await limiter.isBlocked('user:123')) {
+   *   console.log('Rate limit exceeded')
+   * }
+   * ```
    */
   async isBlocked(key: string | number): Promise<boolean> {
     const response = await this.get(key)
@@ -239,7 +297,7 @@ export class Limiter implements LimiterStoreContract {
   }
 
   /**
-   * Clear the storage database
+   * Clears the entire storage, removing all rate limit data.
    */
   clear(): Promise<void> {
     return this.#store.clear()

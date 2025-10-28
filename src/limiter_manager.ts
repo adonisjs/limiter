@@ -19,11 +19,11 @@ import type { LimiterConsumptionOptions, LimiterManagerStoreFactory } from './ty
 import { MultiLimiter } from './multi_limiter.ts'
 
 /**
- * Limiter manager is used to manage multiple rate limiters
- * using different storage providers.
+ * Manages multiple rate limiter stores and creates limiter instances.
+ * Supports creating limiters with runtime configuration for requests,
+ * duration, and block duration.
  *
- * Also, you can create limiter instances with runtime options
- * for "requests", "duration", and "blockDuration".
+ * Limiter instances are cached based on their configuration to optimize performance.
  */
 export class LimiterManager<KnownStores extends Record<string, LimiterManagerStoreFactory>> {
   /**
@@ -37,9 +37,11 @@ export class LimiterManager<KnownStores extends Record<string, LimiterManagerSto
   }
 
   /**
-   * Creates a unique key for a limiter instance. Since, we allow creating
-   * limiters with runtime options for "requests", "duration" and "blockDuration".
-   * The limiterKey is used to identify a limiter instance.
+   * Generates a unique cache key for a limiter instance based on its configuration.
+   * Used internally to cache and reuse limiter instances.
+   *
+   * @param store - The store name
+   * @param options - Consumption options for the limiter
    */
   protected makeLimiterKey(store: keyof KnownStores, options: LimiterConsumptionOptions) {
     const chunks = [`s:${String(store)}`, `r:${options.requests}`, `d:${options.duration}`]
@@ -55,6 +57,23 @@ export class LimiterManager<KnownStores extends Record<string, LimiterManagerSto
     return chunks.join(',')
   }
 
+  /**
+   * Creates a multi-limiter that can execute operations across multiple limiters atomically.
+   * Useful for applying rate limits across different dimensions (e.g., per user and per IP).
+   *
+   * @param store - Store name or array of limiter options with keys
+   * @param options - Array of limiter options with keys (when store is specified)
+   *
+   * @example
+   * ```ts
+   * const multi = limiter.multi([
+   *   { key: 'user:123', requests: 100, duration: '1 hour' },
+   *   { key: 'ip:192.168.1.1', requests: 1000, duration: '1 hour' }
+   * ])
+   *
+   * await multi.consume()
+   * ```
+   */
   multi(options: (LimiterConsumptionOptions & { key: string | number })[]): MultiLimiter
   multi<K extends keyof KnownStores>(
     store: K,
@@ -91,10 +110,26 @@ export class LimiterManager<KnownStores extends Record<string, LimiterManagerSto
   }
 
   /**
-   * Make a limiter instance for a given store and with
-   * runtime options.
+   * Creates or retrieves a cached limiter instance with the specified configuration.
+   * Instances are cached for the lifetime of the process based on their unique configuration.
    *
-   * Caches instances forever for the lifecycle of the process.
+   * @param store - Store name or consumption options
+   * @param options - Consumption options (when store is specified)
+   *
+   * @example
+   * ```ts
+   * // Use default store
+   * const limiter = limiterManager.use({
+   *   requests: 100,
+   *   duration: '1 hour'
+   * })
+   *
+   * // Use specific store
+   * const redisLimiter = limiterManager.use('redis', {
+   *   requests: 1000,
+   *   duration: '1 day'
+   * })
+   * ```
    */
   use(options: LimiterConsumptionOptions): Limiter
   use<K extends keyof KnownStores>(store: K, options: LimiterConsumptionOptions): Limiter
@@ -160,7 +195,18 @@ export class LimiterManager<KnownStores extends Record<string, LimiterManagerSto
   }
 
   /**
-   * Clear stored data with the stores
+   * Clears rate limit data from the specified stores or all stores.
+   *
+   * @param stores - Optional array of store names to clear. Clears all stores if not specified.
+   *
+   * @example
+   * ```ts
+   * // Clear all stores
+   * await limiterManager.clear()
+   *
+   * // Clear specific stores
+   * await limiterManager.clear(['redis', 'memory'])
+   * ```
    */
   async clear(stores?: Extract<keyof KnownStores, string>[]) {
     const storesToUse = stores || Object.keys(this.config.stores)
@@ -197,23 +243,61 @@ export class LimiterManager<KnownStores extends Record<string, LimiterManagerSto
   }
 
   /**
-   * Creates HTTP limiter instance
+   * Creates an HTTP limiter builder with the specified number of allowed requests.
+   * This is the starting point for defining HTTP rate limiting middleware.
+   *
+   * @param requests - Number of requests to allow
+   *
+   * @example
+   * ```ts
+   * const httpLimiter = limiterManager
+   *   .allowRequests(100)
+   *   .every('1 hour')
+   * ```
    */
   allowRequests(requests: number) {
     return new HttpLimiter(this).allowRequests(requests)
   }
 
   /**
-   * A shorthand method that returns null to disable
-   * rate limiting
+   * Returns null to disable rate limiting for specific routes or users.
+   * Useful in middleware when you want to conditionally skip rate limiting.
+   *
+   * @example
+   * ```ts
+   * router.get('/api/data', [
+   *   limiter.define('api', async (ctx) => {
+   *     if (ctx.auth.user?.isAdmin) {
+   *       return limiter.noLimit()
+   *     }
+   *     return limiter.allowRequests(100).every('1 hour')
+   *   })
+   * ])
+   * ```
    */
   noLimit() {
     return null
   }
 
   /**
-   * Define a named HTTP middleware to apply rate
-   * limits on specific routes
+   * Defines a named rate limiting middleware for HTTP routes.
+   * The builder function is called for each request to determine rate limiting behavior.
+   *
+   * @param name - Unique name for the middleware (used as key prefix)
+   * @param builder - Function that returns an HttpLimiter or null to skip limiting
+   *
+   * @example
+   * ```ts
+   * export const apiLimiter = limiter.define('api', (ctx) => {
+   *   return limiter
+   *     .allowRequests(100)
+   *     .every('1 hour')
+   *     .usingKey(ctx.auth.user.id)
+   * })
+   *
+   * // Apply to routes
+   * router.get('/api/data', [apiLimiter], controller.index)
+   * ```
    */
   define(
     name: string,

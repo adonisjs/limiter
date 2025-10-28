@@ -15,7 +15,10 @@ import type { LimiterResponse } from './response.ts'
 
 /**
  * Throttle exception is raised when the user has exceeded
- * the number of requests allowed during a given duration
+ * the number of requests allowed during a given duration.
+ *
+ * The exception automatically sets appropriate HTTP headers and
+ * formats the response based on the request's Accept header.
  */
 export class ThrottleException extends Exception {
   message = 'Too many requests'
@@ -53,7 +56,8 @@ export class ThrottleException extends Exception {
   }
 
   /**
-   * Returns the default headers for the response
+   * Returns the default rate limit headers that will be sent in the HTTP response.
+   * Includes limit information, remaining requests, retry-after time, and reset time.
    */
   getDefaultHeaders(): { [K: string]: any } {
     return {
@@ -66,8 +70,9 @@ export class ThrottleException extends Exception {
 
   /**
    * Returns the message to be sent in the HTTP response.
-   * Feel free to override this method and return a custom
-   * response.
+   * Supports i18n translations when the i18n package is available.
+   *
+   * @param ctx - The HTTP context
    */
   getResponseMessage(ctx: HttpContext) {
     /**
@@ -87,7 +92,15 @@ export class ThrottleException extends Exception {
   }
 
   /**
-   * Update the default error message
+   * Updates the default error message.
+   *
+   * @param message - The new error message
+   *
+   * @example
+   * ```ts
+   * throw new ThrottleException(response)
+   *   .setMessage('Rate limit exceeded. Please try again later.')
+   * ```
    */
   setMessage(message: string): this {
     this.message = message
@@ -95,7 +108,15 @@ export class ThrottleException extends Exception {
   }
 
   /**
-   * Update the default error status code
+   * Updates the default error status code.
+   *
+   * @param status - The HTTP status code
+   *
+   * @example
+   * ```ts
+   * throw new ThrottleException(response)
+   *   .setStatus(503)
+   * ```
    */
   setStatus(status: number): this {
     this.status = status
@@ -103,8 +124,18 @@ export class ThrottleException extends Exception {
   }
 
   /**
-   * Define custom response headers. Existing headers will
-   * be removed
+   * Defines custom response headers. This will replace the default headers.
+   *
+   * @param headers - Custom headers to set
+   *
+   * @example
+   * ```ts
+   * throw new ThrottleException(response)
+   *   .setHeaders({
+   *     'X-Custom-Header': 'value',
+   *     'Retry-After': 60
+   *   })
+   * ```
    */
   setHeaders(headers: { [name: string]: any }): this {
     this.headers = headers
@@ -112,7 +143,16 @@ export class ThrottleException extends Exception {
   }
 
   /**
-   * Define the translation identifier for the throttle response
+   * Defines the i18n translation identifier for the throttle response message.
+   *
+   * @param identifier - The translation key
+   * @param data - Optional translation data
+   *
+   * @example
+   * ```ts
+   * throw new ThrottleException(response)
+   *   .t('errors.rate_limit_exceeded', { minutes: 5 })
+   * ```
    */
   t(identifier: string, data?: Record<string, any>) {
     this.translation = { identifier, data }
@@ -120,7 +160,12 @@ export class ThrottleException extends Exception {
   }
 
   /**
-   * Converts the throttle exception to an HTTP response
+   * Converts the throttle exception to an HTTP response.
+   * Automatically sets appropriate headers and formats the response
+   * based on the Accept header (HTML, JSON, or JSON:API).
+   *
+   * @param error - The throttle exception instance
+   * @param ctx - The HTTP context
    */
   async handle(error: ThrottleException, ctx: HttpContext) {
     const status = error.status
