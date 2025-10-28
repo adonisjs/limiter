@@ -16,6 +16,7 @@ import debug from './debug.ts'
 import { Limiter } from './limiter.ts'
 import { HttpLimiter } from './http_limiter.ts'
 import type { LimiterConsumptionOptions, LimiterManagerStoreFactory } from './types.ts'
+import { MultiLimiter } from './multi_limiter.ts'
 
 /**
  * Limiter manager is used to manage multiple rate limiters
@@ -52,6 +53,41 @@ export class LimiterManager<KnownStores extends Record<string, LimiterManagerSto
       chunks.push(`mbd:${options.inMemoryBlockDuration}`)
     }
     return chunks.join(',')
+  }
+
+  multi(options: (LimiterConsumptionOptions & { key: string | number })[]): MultiLimiter
+  multi<K extends keyof KnownStores>(
+    store: K,
+    options: (LimiterConsumptionOptions & { key: string | number })[]
+  ): MultiLimiter
+  multi(
+    store: keyof KnownStores | (LimiterConsumptionOptions & { key: string | number })[],
+    options?: (LimiterConsumptionOptions & { key: string | number })[]
+  ): MultiLimiter {
+    /**
+     * Normalize options
+     */
+    let storeToUse: keyof KnownStores = typeof store === 'string' ? store : this.config.default
+    let optionsToUse: (LimiterConsumptionOptions & { key: string | number })[] | undefined =
+      Array.isArray(store) ? store : options
+
+    /**
+     * Ensure options are defined
+     */
+    if (!optionsToUse) {
+      throw new RuntimeException(
+        'Specify config for one or more limiters to create a multi limiter'
+      )
+    }
+
+    return new MultiLimiter(
+      optionsToUse.map((limiterOptions) => {
+        return {
+          key: limiterOptions.key,
+          limiter: this.use(storeToUse, limiterOptions),
+        }
+      })
+    )
   }
 
   /**

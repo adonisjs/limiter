@@ -8,8 +8,8 @@
  */
 
 import { type LimiterResponse } from './response.ts'
-import { E_TOO_MANY_REQUESTS, type ThrottleException } from './errors.ts'
 import type { LimiterStoreContract } from './types.ts'
+import { E_TOO_MANY_REQUESTS, type ThrottleException } from './errors.ts'
 
 /**
  * Limiter acts as an adapter on top of the limiter
@@ -18,9 +18,6 @@ import type { LimiterStoreContract } from './types.ts'
 export class Limiter implements LimiterStoreContract {
   #store: LimiterStoreContract
 
-  /**
-   * The number of configured requests on the store
-   */
   get name() {
     return this.#store.name
   }
