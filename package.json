@@ -1,7 +1,7 @@
 {
   "name": "@adonisjs/limiter",
   "description": "Rate limiting package for AdonisJS framework",
-  "version": "3.0.0-next.0",
+  "version": "3.0.0-next.1",
   "type": "module",
   "files": [
     "build",
