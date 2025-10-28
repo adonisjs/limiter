@@ -11,9 +11,10 @@ import { test } from '@japa/runner'
 
 import { createRedis } from './helpers.ts'
 import { Limiter } from '../src/limiter.ts'
+import { MultiLimiter } from '../src/multi_limiter.ts'
 import LimiterRedisStore from '../src/stores/redis.ts'
-import { LimiterManager } from '../src/limiter_manager.ts'
 import LimiterMemoryStore from '../src/stores/memory.ts'
+import { LimiterManager } from '../src/limiter_manager.ts'
 
 test.group('Limiter manager', () => {
   test('create limiter instances using manager', async ({ assert }) => {
@@ -164,5 +165,29 @@ test.group('Limiter manager', () => {
     assert.equal(await user.remaining('id_1'), 4)
     assert.equal(await memoryGlobal.remaining('ip_localhost'), 1)
     assert.equal(await memoryUser.remaining('id_1'), 3)
+  })
+
+  test('create multi limiter instance using manager', async ({ assert }) => {
+    const redis = createRedis(['rlflx:ip_localhost']).connection()
+    const limiterManager = new LimiterManager({
+      default: 'redis',
+      stores: {
+        redis: (options) => new LimiterRedisStore(redis, options),
+      },
+    })
+
+    const limiter = limiterManager.multi('redis', [
+      { requests: 10, duration: '2 minutes', key: 'ip_localhost' },
+    ])
+    assert.instanceOf(limiter, MultiLimiter)
+
+    const response = await limiter.consume()
+    assert.lengthOf(response, 1)
+    assert.containSubset(response[0].toJSON(), {
+      limit: 10,
+      remaining: 9,
+      consumed: 1,
+    })
+    assert.closeTo(response[0].availableIn, 120, 5)
   })
 })
