@@ -264,7 +264,6 @@ export type InferLimiters<
  * Limiter service is a singleton instance of limiter
  * manager configured using user app's config
  */
-export interface LimiterService
-  extends LimiterManager<
-    LimitersList extends Record<string, LimiterManagerStoreFactory> ? LimitersList : never
-  > {}
+export interface LimiterService extends LimiterManager<
+  LimitersList extends Record<string, LimiterManagerStoreFactory> ? LimitersList : never
+> {}
