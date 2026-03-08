@@ -186,18 +186,18 @@ export interface LimiterStoreContract {
    * when all the requests have already been consumed or if
    * the key is blocked.
    */
-  consume(key: string | number): Promise<LimiterResponse>
+  consume(key: string | number, amount?: number): Promise<LimiterResponse>
 
   /**
    * Increment the number of consumed requests for a given key.
    * No errors are thrown when limit has reached
    */
-  increment(key: string | number): Promise<LimiterResponse>
+  increment(key: string | number, amount?: number): Promise<LimiterResponse>
 
   /**
    * Decrement the number of consumed requests for a given key.
    */
-  decrement(key: string | number): Promise<LimiterResponse>
+  decrement(key: string | number, amount?: number): Promise<LimiterResponse>
 
   /**
    * Block a given key for the given duration. The duration must be

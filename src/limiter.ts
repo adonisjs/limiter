@@ -53,8 +53,8 @@ export class Limiter implements LimiterStoreContract {
    *
    * @param key - Unique identifier for the rate limit
    */
-  consume(key: string | number): Promise<LimiterResponse> {
-    return this.#store.consume(key)
+  consume(key: string | number, amount?: number): Promise<LimiterResponse> {
+    return this.#store.consume(key, amount)
   }
 
   /**
@@ -62,9 +62,10 @@ export class Limiter implements LimiterStoreContract {
    * Unlike consume(), this method does not throw when the limit is reached.
    *
    * @param key - Unique identifier for the rate limit
+   * @param amount - Number of requests to increment (default: 1)
    */
-  increment(key: string | number): Promise<LimiterResponse> {
-    return this.#store.increment(key)
+  increment(key: string | number, amount?: number): Promise<LimiterResponse> {
+    return this.#store.increment(key, amount)
   }
 
   /**
@@ -72,9 +73,10 @@ export class Limiter implements LimiterStoreContract {
    * Will not decrement below zero.
    *
    * @param key - Unique identifier for the rate limit
+   * @param amount - Number of requests to decrement (default: 1)
    */
-  decrement(key: string | number): Promise<LimiterResponse> {
-    return this.#store.decrement(key)
+  decrement(key: string | number, amount?: number): Promise<LimiterResponse> {
+    return this.#store.decrement(key, amount)
   }
 
   /**
@@ -95,7 +97,11 @@ export class Limiter implements LimiterStoreContract {
    * }
    * ```
    */
-  async attempt<T>(key: string | number, callback: () => T | Promise<T>): Promise<T | undefined> {
+  async attempt<T>(
+    key: string | number,
+    callback: () => T | Promise<T>,
+    amount?: number
+  ): Promise<T | undefined> {
     /**
      * Return early when remaining requests are less than
      * zero.
@@ -110,7 +116,7 @@ export class Limiter implements LimiterStoreContract {
     }
 
     try {
-      await this.consume(key)
+      await this.consume(key, amount)
       return callback()
     } catch (error) {
       if (error instanceof E_TOO_MANY_REQUESTS === false) {
@@ -144,7 +150,8 @@ export class Limiter implements LimiterStoreContract {
    */
   async penalize<T>(
     key: string | number,
-    callback: () => T | Promise<T>
+    callback: () => T | Promise<T>,
+    amount?: number
   ): Promise<[null, T] | [ThrottleException, null]> {
     const response = await this.get(key)
 
@@ -169,7 +176,7 @@ export class Limiter implements LimiterStoreContract {
      * an error.
      */
     if (callbackError) {
-      const { consumed, limit } = await this.increment(key)
+      const { consumed, limit } = await this.increment(key, amount)
       if (consumed >= limit && this.blockDuration) {
         await this.block(key, this.blockDuration)
       }
