@@ -38,7 +38,7 @@ test.group('Limiter redis store | wrapper | consume', () => {
 
     const response = await store.consume('ip_localhost')
     assert.instanceOf(response, LimiterResponse)
-    assert.containsSubset(response.toJSON(), {
+    assert.containSubset(response.toJSON(), {
       limit: 5,
       remaining: 4,
       consumed: 1,
@@ -58,7 +58,7 @@ test.group('Limiter redis store | wrapper | consume', () => {
       await store.consume('ip_localhost')
     } catch (error) {
       assert.instanceOf(error, E_TOO_MANY_REQUESTS)
-      assert.containsSubset(error.response.toJSON(), {
+      assert.containSubset(error.response.toJSON(), {
         limit: 1,
         remaining: 0,
         consumed: 2,
@@ -80,7 +80,7 @@ test.group('Limiter redis store | wrapper | consume', () => {
       await store.consume('ip_localhost')
     } catch (error) {
       assert.instanceOf(error, E_TOO_MANY_REQUESTS)
-      assert.containsSubset(error.response.toJSON(), {
+      assert.containSubset(error.response.toJSON(), {
         limit: 1,
         remaining: 0,
         consumed: 2,
@@ -166,7 +166,7 @@ test.group('Limiter redis store | wrapper | get', () => {
     await store.consume('ip_localhost')
     const response = await store.get('ip_localhost')
     assert.instanceOf(response, LimiterResponse)
-    assert.containsSubset(response!.toJSON(), {
+    assert.containSubset(response!.toJSON(), {
       limit: 5,
       remaining: 4,
       consumed: 1,
@@ -196,7 +196,7 @@ test.group('Limiter redis store | wrapper | get', () => {
     await assert.rejects(() => store.consume('ip_localhost'))
     const response = await store.get('ip_localhost')
     assert.instanceOf(response, LimiterResponse)
-    assert.containsSubset(response!.toJSON(), {
+    assert.containSubset(response!.toJSON(), {
       limit: 1,
       remaining: 0,
       consumed: 2,
@@ -216,7 +216,7 @@ test.group('Limiter redis store | wrapper | set', () => {
     const response = await store.set('ip_localhost', 2, '1 minute')
     const freshResponse = await store.get('ip_localhost')
     assert.instanceOf(response, LimiterResponse)
-    assert.containsSubset(response!.toJSON(), {
+    assert.containSubset(response!.toJSON(), {
       limit: 5,
       remaining: 3,
       consumed: 2,
@@ -240,7 +240,7 @@ test.group('Limiter redis store | wrapper | set', () => {
     const response = await store.set('ip_localhost', 2, '1 minute')
     const freshResponse = await store.get('ip_localhost')
     assert.instanceOf(response, LimiterResponse)
-    assert.containsSubset(response!.toJSON(), {
+    assert.containSubset(response!.toJSON(), {
       limit: 5,
       remaining: 3,
       consumed: 2,
@@ -263,7 +263,7 @@ test.group('Limiter redis store | wrapper | block', () => {
     const response = await store.block('ip_localhost', '2 minutes')
     const freshResponse = await store.get('ip_localhost')
     assert.instanceOf(response, LimiterResponse)
-    assert.containsSubset(response!.toJSON(), {
+    assert.containSubset(response!.toJSON(), {
       limit: 5,
       remaining: 0,
       consumed: 6,
@@ -298,7 +298,7 @@ test.group('Limiter redis store | wrapper | delete', () => {
     await store.block('ip_localhost', '2 minutes')
     const response = await store.get('ip_localhost')
     assert.instanceOf(response, LimiterResponse)
-    assert.containsSubset(response!.toJSON(), {
+    assert.containSubset(response!.toJSON(), {
       limit: 5,
       remaining: 0,
       consumed: 6,
@@ -353,7 +353,7 @@ test.group('Limiter redis store | wrapper | increment', () => {
     await store.consume('ip_localhost')
     const response = await store.increment('ip_localhost')
     assert.instanceOf(response, LimiterResponse)
-    assert.containsSubset(response.toJSON(), {
+    assert.containSubset(response.toJSON(), {
       limit: 5,
       remaining: 3,
       consumed: 2,
@@ -371,7 +371,7 @@ test.group('Limiter redis store | wrapper | increment', () => {
     await store.increment('ip_localhost')
     const response = await store.increment('ip_localhost')
     assert.instanceOf(response, LimiterResponse)
-    assert.containsSubset(response.toJSON(), {
+    assert.containSubset(response.toJSON(), {
       limit: 1,
       remaining: 0,
       consumed: 3,
@@ -387,7 +387,7 @@ test.group('Limiter redis store | wrapper | increment', () => {
 
     const response = await store.increment('ip_localhost')
     assert.instanceOf(response, LimiterResponse)
-    assert.containsSubset(response.toJSON(), {
+    assert.containSubset(response.toJSON(), {
       limit: 1,
       remaining: 0,
       consumed: 1,
@@ -406,7 +406,7 @@ test.group('Limiter redis store | wrapper | decrement', () => {
     await store.consume('ip_localhost')
     const response = await store.decrement('ip_localhost')
     assert.instanceOf(response, LimiterResponse)
-    assert.containsSubset(response.toJSON(), {
+    assert.containSubset(response.toJSON(), {
       limit: 5,
       remaining: 5,
       consumed: 0,
@@ -426,14 +426,14 @@ test.group('Limiter redis store | wrapper | decrement', () => {
     const freshResponse = await store.get('ip_localhost')
 
     assert.instanceOf(response, LimiterResponse)
-    assert.containsSubset(response.toJSON(), {
+    assert.containSubset(response.toJSON(), {
       limit: 1,
       remaining: 1,
       consumed: 0,
     })
 
     assert.instanceOf(freshResponse, LimiterResponse)
-    assert.containsSubset(freshResponse!.toJSON(), {
+    assert.containSubset(freshResponse!.toJSON(), {
       limit: 1,
       remaining: 1,
       consumed: 0,
@@ -449,7 +449,7 @@ test.group('Limiter redis store | wrapper | decrement', () => {
 
     const response = await store.decrement('ip_localhost')
     assert.instanceOf(response, LimiterResponse)
-    assert.containsSubset(response.toJSON(), {
+    assert.containSubset(response.toJSON(), {
       limit: 1,
       remaining: 1,
       consumed: 0,

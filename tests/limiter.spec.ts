@@ -34,21 +34,27 @@ test.group('Limiter', () => {
      */
     const consumeCall = sinon.spy(store, 'consume')
     await limiter.consume('ip_localhost')
-    assert.isTrue(consumeCall.calledOnceWithExactly('ip_localhost'), 'consume called')
+    assert.isTrue(consumeCall.calledOnceWithExactly('ip_localhost', undefined), 'consume called')
 
     /**
      * increment call
      */
     const incrementCall = sinon.spy(store, 'increment')
     await limiter.increment('ip_localhost')
-    assert.isTrue(incrementCall.calledOnceWithExactly('ip_localhost'), 'increment called')
+    assert.isTrue(
+      incrementCall.calledOnceWithExactly('ip_localhost', undefined),
+      'increment called'
+    )
 
     /**
      * decrement call
      */
     const decrementCall = sinon.spy(store, 'decrement')
     await limiter.decrement('ip_localhost')
-    assert.isTrue(decrementCall.calledOnceWithExactly('ip_localhost'), 'decrement called')
+    assert.isTrue(
+      decrementCall.calledOnceWithExactly('ip_localhost', undefined),
+      'decrement called'
+    )
 
     /**
      * get call
@@ -102,6 +108,142 @@ test.group('Limiter', () => {
     await limiter.increment('ip_localhost')
     await assert.doesNotReject(() => limiter.increment('ip_localhost'))
     await assert.doesNotReject(() => limiter.increment('ip_localhost'))
+  })
+
+  test('increment requests count with negative amount should default to 1', async ({ assert }) => {
+    const redis = createRedis(['rlflx:ip_localhost']).connection()
+    const store = new LimiterRedisStore(redis, {
+      duration: '1 minute',
+      requests: 5,
+    })
+
+    const limiter = new Limiter(store)
+
+    await limiter.increment('ip_localhost', -5)
+    assert.equal(await limiter.remaining('ip_localhost'), 4)
+  })
+
+  test('decrement requests count with negative amount should default to 1', async ({ assert }) => {
+    const redis = createRedis(['rlflx:ip_localhost']).connection()
+    const store = new LimiterRedisStore(redis, {
+      duration: '1 minute',
+      requests: 5,
+    })
+
+    const limiter = new Limiter(store)
+
+    await limiter.increment('ip_localhost', 5)
+    await limiter.decrement('ip_localhost', -3)
+    assert.equal(await limiter.remaining('ip_localhost'), 1)
+  })
+
+  test('increment requests count with zero amount should default to 1', async ({ assert }) => {
+    const redis = createRedis(['rlflx:ip_localhost']).connection()
+    const store = new LimiterRedisStore(redis, {
+      duration: '1 minute',
+      requests: 5,
+    })
+
+    const limiter = new Limiter(store)
+
+    await limiter.increment('ip_localhost', 0)
+    assert.equal(await limiter.remaining('ip_localhost'), 4)
+  })
+
+  test('decrement requests count with zero amount should default to 1', async ({ assert }) => {
+    const redis = createRedis(['rlflx:ip_localhost']).connection()
+    const store = new LimiterRedisStore(redis, {
+      duration: '1 minute',
+      requests: 5,
+    })
+
+    const limiter = new Limiter(store)
+
+    await limiter.increment('ip_localhost', 5)
+    await limiter.decrement('ip_localhost', 0)
+    assert.equal(await limiter.remaining('ip_localhost'), 1)
+  })
+
+  test('increment remaining requests by amount', async ({ assert }) => {
+    const redis = createRedis(['rlflx:ip_localhost']).connection()
+    const store = new LimiterRedisStore(redis, {
+      duration: '1 minute',
+      requests: 5,
+    })
+
+    const limiter = new Limiter(store)
+
+    await limiter.increment('ip_localhost', 3)
+    const response = await limiter.get('ip_localhost')
+    assert.containsSubset(response, {
+      consumed: 3,
+      remaining: 2,
+      limit: 5,
+    })
+  })
+
+  test('decrement consumed requests by amount', async ({ assert }) => {
+    const redis = createRedis(['rlflx:ip_localhost']).connection()
+    const store = new LimiterRedisStore(redis, {
+      duration: '1 minute',
+      requests: 5,
+    })
+
+    const limiter = new Limiter(store)
+
+    await limiter.increment('ip_localhost', 4)
+    await limiter.decrement('ip_localhost', 2)
+    const response = await limiter.get('ip_localhost')
+    assert.containsSubset(response, {
+      consumed: 2,
+      remaining: 3,
+      limit: 5,
+    })
+  })
+
+  test('consume remaining requests by amount', async ({ assert }) => {
+    const redis = createRedis(['rlflx:ip_localhost']).connection()
+    const store = new LimiterRedisStore(redis, {
+      duration: '1 minute',
+      requests: 5,
+    })
+
+    const limiter = new Limiter(store)
+
+    await limiter.consume('ip_localhost', 3)
+    const response = await limiter.get('ip_localhost')
+    assert.containsSubset(response, {
+      consumed: 3,
+      remaining: 2,
+      limit: 5,
+    })
+  })
+
+  test('increment requests count with a custom amount', async ({ assert }) => {
+    const redis = createRedis(['rlflx:ip_localhost']).connection()
+    const store = new LimiterRedisStore(redis, {
+      duration: '1 minute',
+      requests: 10,
+    })
+
+    const limiter = new Limiter(store)
+
+    await limiter.increment('ip_localhost', 3)
+    assert.equal(await limiter.remaining('ip_localhost'), 7)
+  })
+
+  test('decrement requests count with a custom amount', async ({ assert }) => {
+    const redis = createRedis(['rlflx:ip_localhost']).connection()
+    const store = new LimiterRedisStore(redis, {
+      duration: '1 minute',
+      requests: 10,
+    })
+
+    const limiter = new Limiter(store)
+
+    await limiter.increment('ip_localhost', 10)
+    await limiter.decrement('ip_localhost', 4)
+    assert.equal(await limiter.remaining('ip_localhost'), 4)
   })
 
   test('do not run action when all requests have been exhausted', async ({ assert }) => {

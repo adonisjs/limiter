@@ -91,10 +91,12 @@ export default abstract class RateLimiterBridge implements LimiterStoreContract 
    * console.log(`Remaining: ${response.remaining}`)
    * ```
    */
-  async consume(key: string | number): Promise<LimiterResponse> {
+  async consume(key: string | number, amount?: number): Promise<LimiterResponse> {
+    const consumeAmount = amount !== undefined && amount > 0 ? amount : 1
+
     try {
-      const response = await this.rateLimiter.consume(key, 1)
-      debug('request consumed for key %s', key)
+      const response = await this.rateLimiter.consume(key, consumeAmount)
+      debug('request consumed for key %s with amount %d', key, consumeAmount)
       return this.makeLimiterResponse(response)
     } catch (errorResponse: unknown) {
       debug('unable to consume request for key %s, %O', key, errorResponse)
@@ -117,8 +119,13 @@ export default abstract class RateLimiterBridge implements LimiterStoreContract 
    * const response = await limiter.increment('user:123')
    * ```
    */
-  async increment(key: string | number): Promise<LimiterResponse> {
-    const response = await this.rateLimiter.penalty(key, 1)
+  async increment(key: string | number, amount: number = 1): Promise<LimiterResponse> {
+    if (amount <= 0) {
+      debug('invalid increment amount "%d" provided. Falling back to 1', amount)
+      amount = 1
+    }
+
+    const response = await this.rateLimiter.penalty(key, amount)
     debug('increased requests count for key %s', key)
 
     return this.makeLimiterResponse(response)
@@ -135,7 +142,7 @@ export default abstract class RateLimiterBridge implements LimiterStoreContract 
    * const response = await limiter.decrement('user:123')
    * ```
    */
-  async decrement(key: string | number): Promise<LimiterResponse> {
+  async decrement(key: string | number, amount: number = 1): Promise<LimiterResponse> {
     const existingKey = await this.rateLimiter.get(key)
 
     /**
@@ -145,6 +152,11 @@ export default abstract class RateLimiterBridge implements LimiterStoreContract 
       return this.set(key, 0, this.duration)
     }
 
+    if (amount <= 0) {
+      debug('invalid decrement amount "%d" provided. Falling back to 1', amount)
+      amount = 1
+    }
+
     /**
      * Do not decrement beyond zero
      */
@@ -152,10 +164,14 @@ export default abstract class RateLimiterBridge implements LimiterStoreContract 
       return this.makeLimiterResponse(existingKey)
     }
 
+    if (amount > existingKey.consumedPoints) {
+      amount = existingKey.consumedPoints
+    }
+
     /**
      * Decrement
      */
-    const response = await this.rateLimiter.reward(key, 1)
+    const response = await this.rateLimiter.reward(key, amount)
     debug('decreased requests count for key %s', key)
 
     return this.makeLimiterResponse(response)
