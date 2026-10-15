@@ -210,6 +210,8 @@ export class HttpLimiter<KnownStores extends Record<string, LimiterManagerStoreF
      */
     if (limiterResponse && limiterResponse.consumed > limiterResponse.limit) {
       debug('requests exhausted for key "%s"', key)
+      this.#manager.emitter?.emit('limit:exceeded', { key, response: limiterResponse })
+
       const error = new E_TOO_MANY_REQUESTS(limiterResponse)
       this.#exceptionModifier(error)
       throw error

@@ -7,6 +7,8 @@
  * file that was distributed with this source code.
  */
 
+import type { Emitter } from '@adonisjs/core/events'
+
 import { type Limiter } from './limiter.ts'
 import { type LimiterResponse } from './response.ts'
 import { E_TOO_MANY_REQUESTS, type ThrottleException } from './errors.ts'
@@ -18,8 +20,15 @@ import { E_TOO_MANY_REQUESTS, type ThrottleException } from './errors.ts'
  */
 export class MultiLimiter {
   #limiters: { key: string | number; limiter: Limiter }[]
-  constructor(limiters: { key: string | number; limiter: Limiter }[]) {
+
+  /**
+   * Optional emitter to notify about the rejected requests
+   */
+  #emitter?: Emitter<any>
+
+  constructor(limiters: { key: string | number; limiter: Limiter }[], emitter?: Emitter<any>) {
     this.#limiters = limiters
+    this.#emitter = emitter
   }
 
   /**
@@ -149,12 +158,17 @@ export class MultiLimiter {
     callback: () => T | Promise<T>
   ): Promise<[null, T] | [ThrottleException, null]> {
     const responses = await this.get()
-    const exhaustedResponse = responses.find((response) => response && response.remaining <= 0)
+    const exhaustedIndex = responses.findIndex((response) => response && response.remaining <= 0)
 
     /**
      * Abort when user has exhausted all the requests
      */
-    if (exhaustedResponse) {
+    if (exhaustedIndex !== -1) {
+      const exhaustedResponse = responses[exhaustedIndex]!
+      this.#emitter?.emit('limit:exceeded', {
+        key: this.#limiters[exhaustedIndex].key,
+        response: exhaustedResponse,
+      })
       return [new E_TOO_MANY_REQUESTS(exhaustedResponse), null]
     }
 

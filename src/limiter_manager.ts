@@ -8,6 +8,7 @@
  */
 
 import string from '@adonisjs/core/helpers/string'
+import type { Emitter } from '@adonisjs/core/events'
 import type { HttpContext } from '@adonisjs/core/http'
 import type { MiddlewareFn } from '@adonisjs/core/types/http'
 import { RuntimeException } from '@adonisjs/core/exceptions'
@@ -32,8 +33,18 @@ export class LimiterManager<KnownStores extends Record<string, LimiterManagerSto
    */
   #limiters: Map<string, Map<string, Limiter>> = new Map()
 
-  constructor(public config: { default: keyof KnownStores; stores: KnownStores }) {
+  /**
+   * Optional emitter to notify about the rejected requests using
+   * the "limit:exceeded" event
+   */
+  emitter?: Emitter<any>
+
+  constructor(
+    public config: { default: keyof KnownStores; stores: KnownStores },
+    emitter?: Emitter<any>
+  ) {
     this.config = config
+    this.emitter = emitter
   }
 
   /**
@@ -105,7 +116,8 @@ export class LimiterManager<KnownStores extends Record<string, LimiterManagerSto
           key: limiterOptions.key,
           limiter: this.use(storeToUse, limiterOptions),
         }
-      })
+      }),
+      this.emitter
     )
   }
 
@@ -188,7 +200,7 @@ export class LimiterManager<KnownStores extends Record<string, LimiterManagerSto
     /**
      * Create a fresh instance and cache it
      */
-    const limiter = new Limiter(this.config.stores[storeToUse](optionsToUse))
+    const limiter = new Limiter(this.config.stores[storeToUse](optionsToUse), this.emitter)
     debug('creating new limiter instance "%s", options %O', storeToUse, optionsToUse)
     storeLimiters.set(limiterKey, limiter)
     return limiter

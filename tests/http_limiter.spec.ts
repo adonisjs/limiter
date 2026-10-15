@@ -10,7 +10,7 @@
 import { test } from '@japa/runner'
 import { HttpContextFactory } from '@adonisjs/core/factories/http'
 
-import { createRedis } from './helpers.ts'
+import { createEmitter, createRedis } from './helpers.ts'
 import { HttpLimiter } from '../src/http_limiter.ts'
 import LimiterRedisStore from '../src/stores/redis.ts'
 import { LimiterManager } from '../src/limiter_manager.ts'
@@ -155,6 +155,37 @@ test.group('Http limiter', () => {
     ])
     assert.equal(first.status, 'fulfilled')
     assert.equal(second.status, 'rejected')
+  })
+
+  test('emit limit:exceeded event for the throttled key', async ({ assert }) => {
+    const redis = createRedis(['rlflx:api_1']).connection()
+    const { emitter, events } = createEmitter()
+    const limiterManager = new LimiterManager(
+      {
+        default: 'redis',
+        stores: {
+          redis: (options) => new LimiterRedisStore(redis, options),
+        },
+      },
+      emitter
+    )
+
+    const ctx = new HttpContextFactory().create()
+    const limiter = new HttpLimiter(limiterManager)
+    limiter.allowRequests(1).every('1 minute').usingKey(1)
+
+    await limiter.throttle('api', ctx)
+    await assert.rejects(() => limiter.throttle('api', ctx))
+    await assert.rejects(() => limiter.throttle('api', ctx))
+
+    /**
+     * The second request is rejected by the store and the third one
+     * before reaching the store. Both are reported
+     */
+    assert.deepEqual(
+      events.all().map(({ data }) => data.key),
+      ['api_1', 'api_1']
+    )
   })
 
   test('throw error when requests are not configured', async ({ assert }) => {

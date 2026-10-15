@@ -267,3 +267,25 @@ export type InferLimiters<
 export interface LimiterService extends LimiterManager<
   LimitersList extends Record<string, LimiterManagerStoreFactory> ? LimitersList : never
 > {}
+
+/**
+ * Data shared with the "limit:exceeded" event
+ */
+export type LimiterExceededEvent = {
+  /**
+   * The key that has exceeded the limit
+   */
+  key: string | number
+
+  /**
+   * The limiter response for the key at the time of the rejection
+   */
+  response: LimiterResponse
+}
+
+/**
+ * Events emitted by the limiter
+ */
+export type LimiterEvents = {
+  'limit:exceeded': LimiterExceededEvent
+}

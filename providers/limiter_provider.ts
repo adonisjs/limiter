@@ -12,12 +12,13 @@ import { type ApplicationService } from '@adonisjs/core/types'
 import { RuntimeException } from '@adonisjs/core/exceptions'
 
 import { LimiterManager } from '../index.ts'
-import type { LimiterService } from '../src/types.ts'
+import type { LimiterEvents, LimiterService } from '../src/types.ts'
 
 declare module '@adonisjs/core/types' {
   export interface ContainerBindings {
     'limiter.manager': LimiterService
   }
+  export interface EventsList extends LimiterEvents {}
 }
 
 export default class LimiterProvider {
@@ -37,7 +38,8 @@ export default class LimiterProvider {
         )
       }
 
-      return new LimiterManager(config)
+      const emitter = await this.app.container.make('emitter')
+      return new LimiterManager(config, emitter)
     })
   }
 }

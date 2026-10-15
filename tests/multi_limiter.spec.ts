@@ -9,7 +9,7 @@
 
 import { test } from '@japa/runner'
 
-import { createRedis } from './helpers.ts'
+import { createEmitter, createRedis } from './helpers.ts'
 import { Limiter } from '../src/limiter.ts'
 import { ThrottleException } from '../src/errors.ts'
 import LimiterRedisStore from '../src/stores/redis.ts'
@@ -282,5 +282,49 @@ test.group('MultiLimiter', () => {
     assert.equal(await limiter.list()[0].limiter.remaining('ip_localhost'), 0)
     assert.equal(await limiter.list()[1].limiter.remaining('email:foo@bar.com'), 3)
     assert.closeTo(await limiter.list()[0].limiter.availableIn('ip_localhost'), 60 * 30, 5)
+  })
+
+  test('emit limit:exceeded event for the rejected limiter', async ({ assert }) => {
+    const redis = createRedis(['rlflx:ip_localhost', 'rlflx:email:foo@bar.com']).connection()
+    const { emitter, events } = createEmitter()
+
+    const limiter = new MultiLimiter(
+      [
+        {
+          key: 'ip_localhost',
+          limiter: new Limiter(
+            new LimiterRedisStore(redis, { duration: '1 minute', requests: 2 }),
+            emitter
+          ),
+        },
+        {
+          key: 'email:foo@bar.com',
+          limiter: new Limiter(
+            new LimiterRedisStore(redis, { duration: '1 minute', requests: 1 }),
+            emitter
+          ),
+        },
+      ],
+      emitter
+    )
+
+    await assert.rejects(async () => {
+      await limiter.penalize(() => {
+        throw new Error('Something went wrong')
+      })
+    }, 'Something went wrong')
+    assert.equal(events.size(), 0)
+
+    const [error] = await limiter.penalize(() => {})
+    assert.instanceOf(error, ThrottleException)
+
+    await limiter.delete()
+    await limiter.consume()
+    await assert.rejects(() => limiter.consume())
+
+    assert.deepEqual(
+      events.all().map(({ data }) => data.key),
+      ['email:foo@bar.com', 'email:foo@bar.com']
+    )
   })
 })
