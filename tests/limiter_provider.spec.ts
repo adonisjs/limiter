@@ -55,7 +55,9 @@ test.group('Limiter provider', () => {
     app.container.singleton('redis', () => redis)
     await app.boot()
 
-    assert.instanceOf(await app.container.make('limiter.manager'), LimiterManager)
+    const limiter = await app.container.make('limiter.manager')
+    assert.instanceOf(limiter, LimiterManager)
+    assert.strictEqual(limiter.emitter, await app.container.make('emitter'))
   })
 
   test('throw error when config is invalid', async () => {

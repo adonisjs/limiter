@@ -10,7 +10,7 @@
 import sinon from 'sinon'
 import { test } from '@japa/runner'
 
-import { createRedis } from './helpers.ts'
+import { createEmitter, createRedis } from './helpers.ts'
 import { Limiter } from '../src/limiter.ts'
 import LimiterRedisStore from '../src/stores/redis.ts'
 import { ThrottleException } from '../src/errors.ts'
@@ -315,5 +315,95 @@ test.group('Limiter', () => {
     }, 'Something went wrong')
 
     assert.closeTo(await limiter.availableIn('ip_localhost'), 60 * 30, 5)
+  })
+
+  test('emit limit:exceeded event when consume is rejected', async ({ assert }) => {
+    const redis = createRedis(['rlflx:ip_localhost']).connection()
+    const store = new LimiterRedisStore(redis, {
+      duration: '1 minute',
+      requests: 1,
+    })
+
+    const { emitter, events } = createEmitter()
+    const limiter = new Limiter(store, emitter)
+
+    await limiter.consume('ip_localhost')
+    assert.equal(events.size(), 0)
+
+    await assert.rejects(() => limiter.consume('ip_localhost'))
+    await assert.rejects(() => limiter.consume('ip_localhost'))
+
+    assert.deepEqual(
+      events.all().map(({ event, data }) => [event, data.key, data.response.consumed]),
+      [
+        ['limit:exceeded', 'ip_localhost', 2],
+        ['limit:exceeded', 'ip_localhost', 3],
+      ]
+    )
+  })
+
+  test('emit limit:exceeded event for every rejected attempt', async () => {
+    const redis = createRedis(['rlflx:ip_localhost']).connection()
+    const store = new LimiterRedisStore(redis, {
+      duration: '1 minute',
+      requests: 1,
+    })
+
+    const { emitter, events } = createEmitter()
+    const limiter = new Limiter(store, emitter)
+
+    await limiter.attempt('ip_localhost', () => {})
+    await limiter.attempt('ip_localhost', () => {})
+    await limiter.attempt('ip_localhost', () => {})
+
+    /**
+     * The second attempt is rejected by the store and the third one
+     * before reaching the store. Both are reported
+     */
+    events.assertEmittedCount('limit:exceeded', 2)
+  })
+
+  test('emit limit:exceeded event when penalize is rejected', async ({ assert }) => {
+    const redis = createRedis(['rlflx:ip_localhost']).connection()
+    const store = new LimiterRedisStore(redis, {
+      duration: '1 minute',
+      requests: 1,
+    })
+
+    const { emitter, events } = createEmitter()
+    const limiter = new Limiter(store, emitter)
+
+    /**
+     * Exhausting the requests is not a rejection
+     */
+    await assert.rejects(async () => {
+      await limiter.penalize('ip_localhost', () => {
+        throw new Error('Something went wrong')
+      })
+    }, 'Something went wrong')
+    assert.equal(events.size(), 0)
+
+    const [error] = await limiter.penalize('ip_localhost', () => {})
+    assert.instanceOf(error, ThrottleException)
+    events.assertEmitted('limit:exceeded', ({ data }) => {
+      return data.key === 'ip_localhost' && data.response.remaining === 0
+    })
+  })
+
+  test('do not emit limit:exceeded event when incrementing past the limit', async ({ assert }) => {
+    const redis = createRedis(['rlflx:ip_localhost']).connection()
+    const store = new LimiterRedisStore(redis, {
+      duration: '1 minute',
+      requests: 1,
+    })
+
+    const { emitter, events } = createEmitter()
+    const limiter = new Limiter(store, emitter)
+
+    await limiter.increment('ip_localhost')
+    await limiter.increment('ip_localhost')
+    await limiter.set('ip_localhost', 5)
+
+    assert.equal(events.size(), 0)
   })
 })

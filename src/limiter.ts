@@ -7,16 +7,27 @@
  * file that was distributed with this source code.
  */
 
+import type { Emitter } from '@adonisjs/core/events'
+
 import { type LimiterResponse } from './response.ts'
-import type { LimiterStoreContract } from './types.ts'
 import { E_TOO_MANY_REQUESTS, type ThrottleException } from './errors.ts'
+import type { LimiterExceededEvent, LimiterStoreContract } from './types.ts'
 
 /**
  * Limiter provides a high-level API for rate limiting operations.
  * It wraps limiter stores and adds convenience methods like attempt() and penalize().
+ *
+ * When an emitter is provided, every rejected request is reported using the
+ * "limit:exceeded" event. Methods that only change the counters, like
+ * increment() or set(), never emit the event.
  */
 export class Limiter implements LimiterStoreContract {
   #store: LimiterStoreContract
+
+  /**
+   * Optional emitter to notify about the rejected requests
+   */
+  #emitter?: Emitter<any>
 
   get name() {
     return this.#store.name
@@ -43,8 +54,16 @@ export class Limiter implements LimiterStoreContract {
     return this.#store.blockDuration
   }
 
-  constructor(store: LimiterStoreContract) {
+  constructor(store: LimiterStoreContract, emitter?: Emitter<any>) {
     this.#store = store
+    this.#emitter = emitter
+  }
+
+  /**
+   * Emits the "limit:exceeded" event for a rejected request
+   */
+  #notifyExceeded(data: LimiterExceededEvent) {
+    this.#emitter?.emit('limit:exceeded', data)
   }
 
   /**
@@ -53,8 +72,15 @@ export class Limiter implements LimiterStoreContract {
    *
    * @param key - Unique identifier for the rate limit
    */
-  consume(key: string | number): Promise<LimiterResponse> {
-    return this.#store.consume(key)
+  async consume(key: string | number): Promise<LimiterResponse> {
+    try {
+      return await this.#store.consume(key)
+    } catch (error) {
+      if (error instanceof E_TOO_MANY_REQUESTS) {
+        this.#notifyExceeded({ key, response: error.response })
+      }
+      throw error
+    }
   }
 
   /**
@@ -106,6 +132,7 @@ export class Limiter implements LimiterStoreContract {
      */
     const response = await this.get(key)
     if (response && response.consumed > response.limit) {
+      this.#notifyExceeded({ key, response })
       return
     }
 
@@ -152,6 +179,7 @@ export class Limiter implements LimiterStoreContract {
      * Abort when user has exhausted all the requests
      */
     if (response && response.remaining <= 0) {
+      this.#notifyExceeded({ key, response })
       return [new E_TOO_MANY_REQUESTS(response), null]
     }
 

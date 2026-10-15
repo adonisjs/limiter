@@ -16,6 +16,8 @@ import { AppFactory } from '@adonisjs/core/factories/app'
 import { type RedisConnection, RedisManager } from '@adonisjs/redis'
 import { LoggerFactory } from '@adonisjs/core/factories/logger'
 
+import type { LimiterEvents } from '../src/types.ts'
+
 configDotenv()
 
 declare module '@adonisjs/redis/types' {
@@ -80,6 +82,27 @@ export function createDatabase() {
 
   test.cleanup(() => db.manager.closeAll())
   return db
+}
+
+/**
+ * Creates an emitter instance with faked events, so that the
+ * emitted events can be asserted
+ */
+export function createEmitter(): {
+  emitter: Emitter<LimiterEvents>
+  events: ReturnType<Emitter<LimiterEvents>['fake']>
+} {
+  const test = getActiveTest()
+  if (!test) {
+    throw new Error('Cannot use "createEmitter" outside of a Japa test')
+  }
+
+  const app = new AppFactory().create(test.context.fs.baseUrl, () => {})
+  const emitter = new Emitter<LimiterEvents>(app)
+  const events = emitter.fake()
+
+  test.cleanup(() => emitter.restore())
+  return { emitter, events }
 }
 
 /**
