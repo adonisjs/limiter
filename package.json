@@ -1,7 +1,7 @@
 {
   "name": "@adonisjs/limiter",
   "description": "Rate limiting package for AdonisJS framework",
-  "version": "3.0.0-next.1",
+  "version": "3.0.1",
   "type": "module",
   "files": [
     "build",
@@ -79,7 +79,7 @@
     "@adonisjs/core": "^7.0.0-next.1 || ^7.0.0",
     "@adonisjs/i18n": "^3.0.0-next.0 || ^3.0.0",
     "@adonisjs/lucid": "^22.0.0-next.0 || ^22.0.0",
-    "@adonisjs/redis": "^10.0.0-next.1 || ^10.0.0"
+    "@adonisjs/redis": "^10.0.0-next.1 || ^10.0.0 || ^11.0.0"
   },
   "peerDependenciesMeta": {
     "@adonisjs/assembler": {
