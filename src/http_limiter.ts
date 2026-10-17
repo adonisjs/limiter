@@ -49,6 +49,11 @@ export class HttpLimiter<KnownStores extends Record<string, LimiterManagerStoreF
    */
   #exceptionModifier: (error: ThrottleException) => void = () => {}
 
+  /**
+   * In dry run mode, requests are counted but never rejected
+   */
+  #dryRun: boolean = false
+
   constructor(manager: LimiterManager<KnownStores>, options?: LimiterConsumptionOptions) {
     this.#manager = manager
     this.#options = options || {}
@@ -126,6 +131,8 @@ export class HttpLimiter<KnownStores extends Record<string, LimiterManagerStoreF
    * Registers a callback to customize the ThrottleException before it's thrown.
    * Useful for setting custom error messages or translations.
    *
+   * The callback is not called in dry run mode, since no exception is thrown.
+   *
    * @param callback - Function to modify the exception
    *
    * @example
@@ -164,18 +171,55 @@ export class HttpLimiter<KnownStores extends Record<string, LimiterManagerStoreF
   }
 
   /**
+   * Enables the dry run mode. Requests are counted, and the "limit:exceeded"
+   * event is emitted with "dryRun: true" when the limit is exceeded, but
+   * requests are never rejected. Useful to measure the impact of a rate
+   * limit on real traffic before enforcing it.
+   *
+   * Dry run counters use their own keys, so enforcing the limit later
+   * starts from fresh counters. Rate limit headers are not set in dry run
+   * mode, so clients cannot tell the limit exists.
+   *
+   * @param enabled - Enable or disable the dry run mode (default: true)
+   *
+   * @example
+   * ```ts
+   * limiter.allowRequests(100).every('1 hour').dryRun()
+   *
+   * emitter.on('limit:exceeded', ({ key, response, dryRun }) => {
+   *   if (dryRun) {
+   *     logger.warn({ key, consumed: response.consumed }, 'Request would have been throttled')
+   *   }
+   * })
+   * ```
+   */
+  dryRun(enabled: boolean = true): this {
+    this.#dryRun = enabled
+    return this
+  }
+
+  /**
+   * Returns true when the dry run mode is enabled
+   */
+  isDryRun(): boolean {
+    return this.#dryRun
+  }
+
+  /**
    * Returns a JSON representation of the HTTP limiter configuration.
    */
   toJSON() {
     return {
       store: this.#store,
       ...this.#options,
+      ...(this.#dryRun ? { dryRun: true } : {}),
     }
   }
 
   /**
    * Throttles the HTTP request using the configured options.
-   * Throws a ThrottleException if the rate limit is exceeded.
+   * Throws a ThrottleException if the rate limit is exceeded, unless
+   * the dry run mode is enabled.
    *
    * @param prefix - Key prefix to namespace the limiter
    * @param ctx - HTTP context
@@ -197,7 +241,13 @@ export class HttpLimiter<KnownStores extends Record<string, LimiterManagerStoreF
       ? this.#manager.use(this.#store, this.#options as LimiterConsumptionOptions)
       : this.#manager.use(this.#options as LimiterConsumptionOptions)
 
-    const key = `${prefix}_${this.#key || `ip_${ctx.request.ip()}`}`
+    /**
+     * Dry run keys are separated from the enforced ones. Otherwise, keys
+     * blocked during the dry run (using "blockFor") would be rejected
+     * as soon as the dry run mode is disabled.
+     */
+    const namespace = this.#dryRun ? `${prefix}_dry` : prefix
+    const key = `${namespace}_${this.#key || `ip_${ctx.request.ip()}`}`
     debug('throttling HTTP request for key "%s"', key)
     const limiterResponse = await limiter.get(key)
 
@@ -210,7 +260,16 @@ export class HttpLimiter<KnownStores extends Record<string, LimiterManagerStoreF
      */
     if (limiterResponse && limiterResponse.consumed > limiterResponse.limit) {
       debug('requests exhausted for key "%s"', key)
-      this.#manager.emitter?.emit('limit:exceeded', { key, response: limiterResponse })
+      this.#manager.emitter?.emit('limit:exceeded', {
+        key,
+        response: limiterResponse,
+        dryRun: this.#dryRun,
+      })
+
+      if (this.#dryRun) {
+        debug('dry run, letting the request through for key "%s"', key)
+        return limiterResponse
+      }
 
       const error = new E_TOO_MANY_REQUESTS(limiterResponse)
       this.#exceptionModifier(error)
@@ -218,11 +277,20 @@ export class HttpLimiter<KnownStores extends Record<string, LimiterManagerStoreF
     }
 
     try {
-      const consumeResponse = await limiter.consume(key)
+      /**
+       * In dry run mode, the limiter emits the "limit:exceeded" event
+       * flagged as a dry run, and the rejection is turned into a
+       * response below
+       */
+      const consumeResponse = await limiter.consume(key, undefined, { dryRun: this.#dryRun })
       return consumeResponse
     } catch (error) {
       if (error instanceof E_TOO_MANY_REQUESTS) {
         debug('requests exhausted for key "%s"', key)
+        if (this.#dryRun) {
+          debug('dry run, letting the request through for key "%s"', key)
+          return error.response
+        }
         this.#exceptionModifier(error)
       }
       throw error

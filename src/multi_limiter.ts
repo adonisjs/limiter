@@ -168,6 +168,7 @@ export class MultiLimiter {
       this.#emitter?.emit('limit:exceeded', {
         key: this.#limiters[exhaustedIndex].key,
         response: exhaustedResponse,
+        dryRun: false,
       })
       return [new E_TOO_MANY_REQUESTS(exhaustedResponse), null]
     }
