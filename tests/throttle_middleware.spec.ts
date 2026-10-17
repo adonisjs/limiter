@@ -10,7 +10,7 @@
 import { test } from '@japa/runner'
 import { HttpContextFactory } from '@adonisjs/core/factories/http'
 
-import { createRedis } from './helpers.ts'
+import { createEmitter, createRedis } from './helpers.ts'
 import LimiterRedisStore from '../src/stores/redis.ts'
 import { LimiterManager } from '../src/limiter_manager.ts'
 
@@ -105,6 +105,66 @@ test.group('Throttle middleware', () => {
       assert.closeTo(error.response.availableIn, 30 * 60, 5)
       assert.isFalse(nextCalled)
     }
+  })
+
+  test('set rate limit headers', async ({ assert }) => {
+    const redis = createRedis(['rlflx:api_1']).connection()
+    const limiterManager = new LimiterManager({
+      default: 'redis',
+      stores: {
+        redis: (options) => new LimiterRedisStore(redis, options),
+      },
+    })
+
+    const apiLimiter = limiterManager.define('api', () => {
+      return limiterManager.allowRequests(5).every('1 minute').usingKey(1)
+    })
+
+    const ctx = new HttpContextFactory().create()
+    await apiLimiter(ctx, () => {})
+
+    assert.equal(ctx.response.getHeader('X-RateLimit-Limit'), 5)
+    assert.equal(ctx.response.getHeader('X-RateLimit-Remaining'), 4)
+  })
+
+  test('call next without rate limit headers in dry run mode', async ({ assert }) => {
+    let nextCalls = 0
+
+    const redis = createRedis(['rlflx:api_dry_1']).connection()
+    const { emitter, events } = createEmitter()
+    const limiterManager = new LimiterManager(
+      {
+        default: 'redis',
+        stores: {
+          redis: (options) => new LimiterRedisStore(redis, options),
+        },
+      },
+      emitter
+    )
+
+    const apiLimiter = limiterManager.define('api', () => {
+      return limiterManager
+        .allowRequests(1)
+        .every('1 minute')
+        .usingKey(1)
+        .blockFor('30 mins')
+        .dryRun()
+    })
+
+    for (let i = 0; i < 3; i++) {
+      const ctx = new HttpContextFactory().create()
+      await apiLimiter(ctx, () => {
+        nextCalls++
+      })
+
+      assert.isUndefined(ctx.response.getHeader('X-RateLimit-Limit'))
+      assert.isUndefined(ctx.response.getHeader('X-RateLimit-Remaining'))
+      assert.isUndefined(ctx.response.getHeader('Retry-After'))
+    }
+
+    assert.equal(nextCalls, 3)
+    events.assertEmittedCount('limit:exceeded', 2)
+    events.assertNotEmitted('limit:exceeded', ({ data }) => !data.dryRun)
   })
 
   test('do not throttle request when no limiter is used', async ({ assert }) => {

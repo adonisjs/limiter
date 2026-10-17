@@ -344,10 +344,13 @@ export class LimiterManager<KnownStores extends Record<string, LimiterManagerSto
       const response = await next()
 
       /**
-       * Define appropriate headers
+       * Define appropriate headers. Not in dry run mode: clients should
+       * not be able to tell a limit exists before it is enforced
        */
-      ctx.response.header('X-RateLimit-Limit', limiterResponse.limit)
-      ctx.response.header('X-RateLimit-Remaining', limiterResponse.remaining)
+      if (!limiter.isDryRun()) {
+        ctx.response.header('X-RateLimit-Limit', limiterResponse.limit)
+        ctx.response.header('X-RateLimit-Remaining', limiterResponse.remaining)
+      }
 
       /**
        * Return response
