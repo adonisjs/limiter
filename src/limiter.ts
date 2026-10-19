@@ -70,14 +70,22 @@ export class Limiter implements LimiterStoreContract {
    * Consumes one request for the given key. Throws a ThrottleException
    * when the rate limit is exceeded or the key is blocked.
    *
+   * The "dryRun" option only flags the "limit:exceeded" event. The
+   * exception is still thrown and it is up to the caller to let
+   * the request through.
+   *
    * @param key - Unique identifier for the rate limit
    */
-  async consume(key: string | number, amount?: number): Promise<LimiterResponse> {
+  async consume(
+    key: string | number,
+    amount?: number,
+    options?: { dryRun?: boolean }
+  ): Promise<LimiterResponse> {
     try {
       return await this.#store.consume(key, amount)
     } catch (error) {
       if (error instanceof E_TOO_MANY_REQUESTS) {
-        this.#notifyExceeded({ key, response: error.response })
+        this.#notifyExceeded({ key, response: error.response, dryRun: options?.dryRun ?? false })
       }
       throw error
     }
@@ -138,7 +146,7 @@ export class Limiter implements LimiterStoreContract {
      */
     const response = await this.get(key)
     if (response && response.consumed > response.limit) {
-      this.#notifyExceeded({ key, response })
+      this.#notifyExceeded({ key, response, dryRun: false })
       return
     }
 
@@ -186,7 +194,7 @@ export class Limiter implements LimiterStoreContract {
      * Abort when user has exhausted all the requests
      */
     if (response && response.remaining <= 0) {
-      this.#notifyExceeded({ key, response })
+      this.#notifyExceeded({ key, response, dryRun: false })
       return [new E_TOO_MANY_REQUESTS(response), null]
     }
 

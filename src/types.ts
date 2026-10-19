@@ -281,6 +281,12 @@ export type LimiterExceededEvent = {
    * The limiter response for the key at the time of the rejection
    */
   response: LimiterResponse
+
+  /**
+   * True when the request was let through because the limiter runs
+   * in dry run mode. The request would have been rejected otherwise
+   */
+  dryRun: boolean
 }
 
 /**

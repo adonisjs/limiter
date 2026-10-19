@@ -7,6 +7,7 @@
  * file that was distributed with this source code.
  */
 
+import sinon from 'sinon'
 import { test } from '@japa/runner'
 import { HttpContextFactory } from '@adonisjs/core/factories/http'
 
@@ -183,9 +184,117 @@ test.group('Http limiter', () => {
      * before reaching the store. Both are reported
      */
     assert.deepEqual(
-      events.all().map(({ data }) => data.key),
-      ['api_1', 'api_1']
+      events.all().map(({ data }) => [data.key, data.dryRun]),
+      [
+        ['api_1', false],
+        ['api_1', false],
+      ]
     )
+  })
+
+  test('define dry run limiter', async ({ assert }) => {
+    const redis = createRedis().connection()
+    const limiterManager = new LimiterManager({
+      default: 'redis',
+      stores: {
+        redis: (options) => new LimiterRedisStore(redis, options),
+      },
+    })
+
+    const limiter = new HttpLimiter(limiterManager)
+    limiter.allowRequests(10).every('1 minute').dryRun()
+
+    assert.isTrue(limiter.isDryRun())
+    assert.deepEqual(limiter.toJSON(), {
+      duration: '1 minute',
+      requests: 10,
+      store: undefined,
+      dryRun: true,
+    })
+
+    limiter.dryRun(false)
+    assert.isFalse(limiter.isDryRun())
+    assert.deepEqual(limiter.toJSON(), {
+      duration: '1 minute',
+      requests: 10,
+      store: undefined,
+    })
+  })
+
+  test('do not reject requests in dry run mode', async ({ assert }) => {
+    const redis = createRedis(['rlflx:api_dry_1']).connection()
+    const { emitter, events } = createEmitter()
+    const limiterManager = new LimiterManager(
+      {
+        default: 'redis',
+        stores: {
+          redis: (options) => new LimiterRedisStore(redis, options),
+        },
+      },
+      emitter
+    )
+
+    const exceptionModifier = sinon.spy()
+    const ctx = new HttpContextFactory().create()
+    const limiter = new HttpLimiter(limiterManager)
+    limiter.allowRequests(1).every('1 minute').usingKey(1).dryRun().limitExceeded(exceptionModifier)
+
+    const first = await limiter.throttle('api', ctx)
+    const second = await limiter.throttle('api', ctx)
+    const third = await limiter.throttle('api', ctx)
+
+    assert.equal(first.remaining, 0)
+    assert.equal(second.remaining, 0)
+    assert.equal(third.remaining, 0)
+    assert.isFalse(exceptionModifier.called)
+
+    /**
+     * The second request is rejected by the store and the third one
+     * before reaching the store. Both are reported once, as dry runs
+     */
+    assert.deepEqual(
+      events.all().map(({ data }) => [data.key, data.response.consumed, data.dryRun]),
+      [
+        ['api_dry_1', 2, true],
+        ['api_dry_1', 2, true],
+      ]
+    )
+  })
+
+  test('use separate keys in dry run mode', async ({ assert }) => {
+    const redis = createRedis(['rlflx:api_1', 'rlflx:api_dry_1']).connection()
+    const limiterManager = new LimiterManager({
+      default: 'redis',
+      stores: {
+        redis: (options) => new LimiterRedisStore(redis, options),
+      },
+    })
+
+    const ctx = new HttpContextFactory().create()
+    const dryRunLimiter = new HttpLimiter(limiterManager)
+    dryRunLimiter.allowRequests(1).every('1 minute').blockFor('30 mins').usingKey(1).dryRun()
+
+    await dryRunLimiter.throttle('api', ctx)
+    await dryRunLimiter.throttle('api', ctx)
+    await dryRunLimiter.throttle('api', ctx)
+
+    /**
+     * The key observed during the dry run is blocked in the dry
+     * run namespace only
+     */
+    const store = limiterManager.use({
+      requests: 1,
+      duration: '1 minute',
+      blockDuration: '30 mins',
+    })
+    assert.isBelow(await store.remaining('api_dry_1'), 1)
+    assert.isAbove(await store.availableIn('api_dry_1'), 60)
+
+    const limiter = new HttpLimiter(limiterManager)
+    limiter.allowRequests(1).every('1 minute').blockFor('30 mins').usingKey(1)
+
+    await assert.doesNotReject(() => limiter.throttle('api', ctx))
+    await assert.rejects(() => limiter.throttle('api', ctx))
   })
 
   test('throw error when requests are not configured', async ({ assert }) => {
