@@ -109,7 +109,7 @@ export function createEmitter(): {
  * Creates redis manager instance to execute redis
  * commands
  */
-export function createRedis(keysToClear?: string[]) {
+export function createRedis(keysToClear?: string[], options?: { keyPrefix?: string }) {
   const test = getActiveTest()
   if (!test) {
     throw new Error('Cannot use "createDatabase" outside of a Japa test')
@@ -123,6 +123,7 @@ export function createRedis(keysToClear?: string[]) {
         main: {
           host: process.env.REDIS_HOST || '0.0.0.0',
           port: process.env.REDIS_PORT || 6379,
+          ...options,
         },
       },
     },
