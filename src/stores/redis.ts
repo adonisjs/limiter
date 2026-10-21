@@ -8,6 +8,7 @@
  */
 
 import string from '@adonisjs/core/helpers/string'
+import { RuntimeException } from '@adonisjs/core/exceptions'
 import { RateLimiterRedis } from 'rate-limiter-flexible'
 import { RedisClusterConnection, type RedisConnection } from '@adonisjs/redis'
 
@@ -51,21 +52,39 @@ export default class LimiterRedisStore extends RateLimiterBridge {
   }
 
   /**
-   * Flushes the Redis database to clear all rate limit data.
-   *
-   * **Warning**: This flushes the entire database. Use a dedicated Redis database
-   * for rate limiting to avoid clearing other data.
+   * Deletes the keys of this store, the ones under its `keyPrefix`, and
+   * leaves every other key of the Redis database untouched. Limiters
+   * sharing a `keyPrefix` are cleared together.
    */
   async clear() {
+    const keyPrefix = this.rateLimiter.keyPrefix
+    if (!keyPrefix) {
+      throw new RuntimeException('Cannot clear a redis limiter store without a "keyPrefix"')
+    }
+
     this.deleteInMemoryBlockedKeys()
-    if (this.#client instanceof RedisClusterConnection) {
-      debug('flushing redis cluster')
-      for (let node of this.#client.nodes('master')) {
-        await node.flushdb()
+
+    /**
+     * SCAN returns the keys with the prefix of the connection, while UNLINK
+     * adds it again, so the prefix is part of the pattern and removed from
+     * the keys before deleting them.
+     */
+    const connection = this.#client.ioConnection
+    const connectionPrefix = connection.options.keyPrefix ?? ''
+    const pattern = `${connectionPrefix}${keyPrefix}:`.replace(/[*?[\]\\]/g, '\\$&') + '*'
+    const nodes =
+      this.#client instanceof RedisClusterConnection
+        ? this.#client.nodes('master')
+        : [this.#client.ioConnection]
+
+    debug('clearing redis keys matching %s', pattern)
+    for (const node of nodes) {
+      for await (const keys of node.scanStream({ match: pattern, count: 100 })) {
+        // One key per command, since a cluster refuses a command whose keys span several slots.
+        await Promise.all(
+          (keys as string[]).map((key) => connection.unlink(key.slice(connectionPrefix.length)))
+        )
       }
-    } else {
-      debug('flushing redis database')
-      await this.#client.flushdb()
     }
   }
 }
