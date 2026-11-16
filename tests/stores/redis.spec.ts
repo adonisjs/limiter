@@ -8,6 +8,7 @@
  */
 
 import { test } from '@japa/runner'
+import { RuntimeException } from '@adonisjs/core/exceptions'
 
 import { createRedis } from '../helpers.ts'
 import { LimiterResponse } from '../../src/response.ts'
@@ -326,19 +327,80 @@ test.group('Limiter redis store | wrapper | delete', () => {
 })
 
 test.group('Limiter redis store | wrapper | clear', () => {
-  test('clear db', async ({ assert }) => {
-    const redis = createRedis(['rlflx:ip_localhost']).connection()
+  test('delete the keys of the store and keep every other key', async ({ assert }) => {
+    const redis = createRedis([
+      'rlflx:ip_localhost',
+      'login:ip_localhost',
+      'session:abc',
+    ]).connection()
+    const store = new LimiterRedisStore(redis, {
+      duration: '1 minute',
+      requests: 5,
+    })
+    const loginStore = new LimiterRedisStore(redis, {
+      duration: '1 minute',
+      requests: 5,
+      keyPrefix: 'login',
+    })
+
+    await store.consume('ip_localhost')
+    await loginStore.consume('ip_localhost')
+    await redis.set('session:abc', 'data')
+
+    await store.clear()
+    assert.isNull(await store.get('ip_localhost'))
+    assert.instanceOf(await loginStore.get('ip_localhost'), LimiterResponse)
+    assert.equal(await redis.get('session:abc'), 'data')
+  })
+
+  test('delete the keys of the store on a connection with a key prefix', async ({ assert }) => {
+    const redis = createRedis(['rlflx:ip_localhost', 'session:abc'], {
+      keyPrefix: 'app:',
+    }).connection()
     const store = new LimiterRedisStore(redis, {
       duration: '1 minute',
       requests: 5,
     })
 
     await store.consume('ip_localhost')
-    const response = await store.get('ip_localhost')
-    assert.instanceOf(response, LimiterResponse)
+    await redis.set('session:abc', 'data')
 
     await store.clear()
     assert.isNull(await store.get('ip_localhost'))
+    assert.equal(await redis.get('session:abc'), 'data')
+  })
+
+  test('treat glob characters of the key prefix literally', async ({ assert }) => {
+    const redis = createRedis(['rl*:ip_localhost', 'rlflx:ip_localhost']).connection()
+    const store = new LimiterRedisStore(redis, {
+      duration: '1 minute',
+      requests: 5,
+      keyPrefix: 'rl*',
+    })
+    const defaultStore = new LimiterRedisStore(redis, {
+      duration: '1 minute',
+      requests: 5,
+    })
+
+    await store.consume('ip_localhost')
+    await defaultStore.consume('ip_localhost')
+
+    await store.clear()
+    assert.isNull(await store.get('ip_localhost'))
+    assert.instanceOf(await defaultStore.get('ip_localhost'), LimiterResponse)
+  })
+  test('refuse to clear a store without a key prefix', async ({ assert }) => {
+    const redis = createRedis(['ip_localhost']).connection()
+    const store = new LimiterRedisStore(redis, {
+      duration: '1 minute',
+      requests: 5,
+      keyPrefix: '',
+    })
+
+    await store.consume('ip_localhost')
+
+    await assert.rejects(() => store.clear(), RuntimeException)
+    assert.instanceOf(await store.get('ip_localhost'), LimiterResponse)
   })
 })
 
