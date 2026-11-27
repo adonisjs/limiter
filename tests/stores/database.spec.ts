@@ -81,7 +81,7 @@ test.group('Limiter database store | wrapper | consume', () => {
     await store.consume('ip_localhost')
     try {
       await store.consume('ip_localhost')
-    } catch (error) {
+    } catch (error: any) {
       assert.instanceOf(error, E_TOO_MANY_REQUESTS)
       assert.containSubset(error.response.toJSON(), {
         limit: 1,
@@ -107,7 +107,7 @@ test.group('Limiter database store | wrapper | consume', () => {
     await store.consume('ip_localhost')
     try {
       await store.consume('ip_localhost')
-    } catch (error) {
+    } catch (error: any) {
       assert.instanceOf(error, E_TOO_MANY_REQUESTS)
       assert.containSubset(error.response.toJSON(), {
         limit: 1,
@@ -208,7 +208,7 @@ test.group('Limiter database store | wrapper | consume', () => {
 
     try {
       await store.consume('ip_localhost')
-    } catch (error) {
+    } catch (error: any) {
       assert.match(
         error.message,
         /relation "foo" does not exist|Table 'limiter.foo' doesn't exist|no such table: foo/

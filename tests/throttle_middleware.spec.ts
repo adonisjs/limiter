@@ -67,7 +67,7 @@ test.group('Throttle middleware', () => {
       await apiLimiter(ctx, () => {
         nextCalled = true
       })
-    } catch (error) {
+    } catch (error: any) {
       assert.equal(error.message, 'Too many requests')
       assert.isFalse(nextCalled)
     }
@@ -100,7 +100,7 @@ test.group('Throttle middleware', () => {
       await apiLimiter(ctx, () => {
         nextCalled = true
       })
-    } catch (error) {
+    } catch (error: any) {
       assert.equal(error.message, 'Too many requests')
       assert.closeTo(error.response.availableIn, 30 * 60, 5)
       assert.isFalse(nextCalled)

@@ -57,7 +57,7 @@ test.group('Limiter redis store | wrapper | consume', () => {
     await store.consume('ip_localhost')
     try {
       await store.consume('ip_localhost')
-    } catch (error) {
+    } catch (error: any) {
       assert.instanceOf(error, E_TOO_MANY_REQUESTS)
       assert.containSubset(error.response.toJSON(), {
         limit: 1,
@@ -79,7 +79,7 @@ test.group('Limiter redis store | wrapper | consume', () => {
     await store.consume('ip_localhost')
     try {
       await store.consume('ip_localhost')
-    } catch (error) {
+    } catch (error: any) {
       assert.instanceOf(error, E_TOO_MANY_REQUESTS)
       assert.containSubset(error.response.toJSON(), {
         limit: 1,
