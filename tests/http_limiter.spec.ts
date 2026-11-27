@@ -124,7 +124,7 @@ test.group('Http limiter', () => {
     await limiter.throttle('api', ctx)
     try {
       await limiter.throttle('api', ctx)
-    } catch (error) {
+    } catch (error: any) {
       assert.equal(error.message, 'Requests exhaused')
       assert.equal(error.status, 400)
     }
